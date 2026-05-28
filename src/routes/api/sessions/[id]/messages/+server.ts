@@ -10,7 +10,7 @@ export const GET: RequestHandler = ({ params, url }) => {
   // Look up agent_group_id from the central DB
   const row = db.prepare(
     'SELECT agent_group_id FROM sessions WHERE id = ?'
-  ).get(sessionId) as { agent_group_id: number } | undefined;
+  ).get(sessionId) as { agent_group_id: string } | undefined;
 
   if (!row) throw error(404, 'Session not found');
 

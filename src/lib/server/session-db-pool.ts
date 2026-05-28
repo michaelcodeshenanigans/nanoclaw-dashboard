@@ -32,7 +32,7 @@ function openDb(filePath: string): Database.Database | null {
 }
 
 export function getSessionDbPair(
-  groupId: number,
+  groupId: string,
   sessionId: string
 ): PoolEntry {
   const cacheKey = `${groupId}:${sessionId}`;
@@ -49,7 +49,7 @@ export function getSessionDbPair(
 
   const dbEnvPath = process.env.NANOCLAW_DB ?? '';
   const dataDir = path.dirname(dbEnvPath);
-  const sessBase = path.join(dataDir, 'v2-sessions', String(groupId), sessionId);
+  const sessBase = path.join(dataDir, 'v2-sessions', groupId, sessionId);
 
   const entry: PoolEntry = {
     inbound: openDb(path.join(sessBase, 'inbound.db')),

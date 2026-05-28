@@ -18,7 +18,7 @@ export interface HealthStatus {
 }
 
 export interface Group {
-  id: number;
+  id: string;
   name: string;
   folder: string;
   agent_provider: string;
@@ -41,7 +41,7 @@ export interface HealthStats {
 }
 
 export interface GroupDetail {
-  id: number;
+  id: string;
   name: string;
   folder: string;
   agent_provider: string;
@@ -51,7 +51,7 @@ export interface GroupDetail {
 }
 
 export interface Member {
-  id: number;
+  id: string;
   name: string;
   platform: string;
   platform_id: string;
@@ -59,14 +59,14 @@ export interface Member {
 }
 
 export interface Destination {
-  id: number;
+  id: string;
   name: string;
   platform: string;
 }
 
 export interface SessionSummary {
   id: string;
-  agent_group_id: number;
+  agent_group_id: string;
   thread_id: string | null;
   status: string | null;
   container_status: 'running' | 'stopped' | 'error' | null;
@@ -76,8 +76,8 @@ export interface SessionSummary {
 
 export interface SessionWithGroup {
   id: string;
-  agent_group_id: number;
-  messaging_group_id: number | null;
+  agent_group_id: string;
+  messaging_group_id: string | null;
   thread_id: string | null;
   status: string | null;
   container_status: 'running' | 'stopped' | 'error' | null;

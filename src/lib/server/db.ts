@@ -82,7 +82,7 @@ export function getHealthStats(): HealthStats {
   };
 }
 
-export function getGroupById(id: number): GroupDetail | null {
+export function getGroupById(id: string): GroupDetail | null {
   const row = db.prepare(`
     SELECT
       id,
@@ -99,7 +99,7 @@ export function getGroupById(id: number): GroupDetail | null {
   return row ?? null;
 }
 
-export function getGroupMembers(groupId: number): Member[] {
+export function getGroupMembers(groupId: string): Member[] {
   return db.prepare(`
     SELECT
       u.id        AS id,
@@ -114,7 +114,7 @@ export function getGroupMembers(groupId: number): Member[] {
   `).all(groupId) as Member[];
 }
 
-export function getGroupDestinations(groupId: number): Destination[] {
+export function getGroupDestinations(groupId: string): Destination[] {
   try {
     return db.prepare(`
       SELECT
@@ -132,7 +132,7 @@ export function getGroupDestinations(groupId: number): Destination[] {
   }
 }
 
-export function getGroupSessions(groupId: number): SessionSummary[] {
+export function getGroupSessions(groupId: string): SessionSummary[] {
   return db.prepare(`
     SELECT
       id,
@@ -150,16 +150,16 @@ export function getGroupSessions(groupId: number): SessionSummary[] {
 }
 
 export interface SessionFilters {
-  groupId?: number;
+  groupId?: string;
   containerStatus?: string;
   since?: string;
 }
 
 export function getSessions(filters: SessionFilters = {}): SessionWithGroup[] {
   const where: string[] = [];
-  const params: Array<number | string> = [];
+  const params: Array<string> = [];
 
-  if (typeof filters.groupId === 'number' && Number.isInteger(filters.groupId)) {
+  if (typeof filters.groupId === 'string' && filters.groupId.length > 0) {
     where.push('s.agent_group_id = ?');
     params.push(filters.groupId);
   }
@@ -224,7 +224,7 @@ export interface GetSessionMessagesOpts {
 }
 
 export function getSessionMessages(
-  groupId: number,
+  groupId: string,
   sessionId: string,
   opts: GetSessionMessagesOpts = {}
 ): Message[] {

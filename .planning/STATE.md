@@ -5,8 +5,8 @@
 
 ## Status
 
-Current phase: Phase 4 — Per-Session Message Log Viewer
-Next action: Plan and execute Phase 4
+Current phase: Phase 5 — Group Admin (Restart & Member Management)
+Next action: Plan and execute Phase 5
 
 ## Project Reference
 
@@ -25,7 +25,7 @@ v1.0 — Ops Panel Launch (6 phases, 29 requirements)
 | 1 | Foundation & Deploy | Complete | 6 |
 | 2 | Groups Overview & System Health | Complete | 3 |
 | 3 | Group Detail, Members, Destinations & Sessions Index | Complete | 8 |
-| 4 | Per-Session Message Log Viewer | Not started | 5 |
+| 4 | Per-Session Message Log Viewer | Complete | 5 |
 | 5 | Group Admin — Restart & Member Management | Not started | 3 |
 | 6 | Pending Command Approvals Queue | Not started | 4 |
 

@@ -4,7 +4,7 @@ import Database from 'better-sqlite3';
 import type { ContainerState } from '$lib/types';
 
 export function getSessionContainerState(
-  groupId: number,
+  groupId: string,
   sessionId: string
 ): ContainerState | null {
   const centralDb = process.env.NANOCLAW_DB;
@@ -15,7 +15,7 @@ export function getSessionContainerState(
   const sessionDbPath = path.join(
     path.dirname(centralDb),
     'v2-sessions',
-    String(groupId),
+    groupId,
     sessionId,
     'outbound.db'
   );

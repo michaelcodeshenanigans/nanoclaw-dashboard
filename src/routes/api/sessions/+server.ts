@@ -10,16 +10,13 @@ export const GET: RequestHandler = ({ url }) => {
   const rawSince = url.searchParams.get('since');
 
   const filters: {
-    groupId?: number;
+    groupId?: string;
     containerStatus?: string;
     since?: string;
   } = {};
 
-  if (rawGroupId !== null) {
-    const parsed = Number(rawGroupId);
-    if (Number.isInteger(parsed) && parsed > 0) {
-      filters.groupId = parsed;
-    }
+  if (rawGroupId !== null && rawGroupId.length > 0) {
+    filters.groupId = rawGroupId;
   }
 
   if (rawStatus !== null && ALLOWED_STATUSES.has(rawStatus)) {
