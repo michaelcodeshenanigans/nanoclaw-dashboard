@@ -1,0 +1,27 @@
+services:
+  nanoclaw-dashboard:
+    build: .
+    image: nanoclaw-dashboard:latest
+    container_name: nanoclaw-dashboard
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NANOCLAW_DB=/nanoclaw-data/v2.db
+      - NCL_SOCKET=/ncl.sock
+    volumes:
+      - /home/michael/workspace/nanoclaw-v2/data:/nanoclaw-data:ro
+      - /home/michael/workspace/nanoclaw-v2/data/ncl.sock:/ncl.sock
+    networks:
+      - saltbox
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nanoclaw-dashboard.rule=Host(`nanoclaw.marinemr.xyz`)"
+      - "traefik.http.routers.nanoclaw-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.nanoclaw-dashboard.tls.certresolver=cfdns"
+      - "traefik.http.routers.nanoclaw-dashboard.middlewares=authelia@docker"
+      - "traefik.http.services.nanoclaw-dashboard.loadbalancer.server.port=3000"
+
+networks:
+  saltbox:
+    external: true
