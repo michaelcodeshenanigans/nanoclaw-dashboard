@@ -5,8 +5,8 @@
 
 ## Status
 
-Current phase: Not started
-Next action: /gsd-discuss-phase 1
+Current phase: Phase 1 — Foundation & Deploy (planned, executing)
+Next action: Execute Wave 1 (01-01 scaffold + 01-02 Docker, parallel)
 
 ## Project Reference
 
@@ -22,7 +22,7 @@ v1.0 — Ops Panel Launch (6 phases, 29 requirements)
 
 | # | Name | Status | Requirements |
 |---|------|--------|--------------|
-| 1 | Foundation & Deploy | Not started | 6 |
+| 1 | Foundation & Deploy | Planned (4 plans, 2 waves) | 6 |
 | 2 | Groups Overview & System Health | Not started | 3 |
 | 3 | Group Detail, Members, Destinations & Sessions Index | Not started | 8 |
 | 4 | Per-Session Message Log Viewer | Not started | 5 |
@@ -33,6 +33,8 @@ v1.0 — Ops Panel Launch (6 phases, 29 requirements)
 
 - 2026-05-28: Project initialized (PROJECT.md, REQUIREMENTS.md, research/)
 - 2026-05-28: Roadmap created (6 phases, 29/29 requirements mapped)
+- 2026-05-28: Phase 1 plans written (01-01 through 01-04, 2 waves)
+- 2026-05-28: Phase 1 execution started (Wave 1: scaffold + Docker)
 
 ## Confirmed Infrastructure (SSH-verified 2026-05-28)
 
