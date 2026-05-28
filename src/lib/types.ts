@@ -39,3 +39,59 @@ export interface HealthStats {
   recent_errors: number;
   total_groups: number;
 }
+
+export interface GroupDetail {
+  id: number;
+  name: string;
+  folder: string;
+  agent_provider: string;
+  created_at: string;
+  model: string | null;
+  config_json: string | null;
+}
+
+export interface Member {
+  id: number;
+  name: string;
+  platform: string;
+  platform_id: string;
+  role: string;
+}
+
+export interface Destination {
+  id: number;
+  name: string;
+  platform: string;
+}
+
+export interface SessionSummary {
+  id: string;
+  agent_group_id: number;
+  thread_id: string | null;
+  status: string | null;
+  container_status: 'running' | 'stopped' | 'error' | null;
+  last_active: string | null;
+  created_at: string;
+}
+
+export interface SessionWithGroup {
+  id: string;
+  agent_group_id: number;
+  messaging_group_id: number | null;
+  thread_id: string | null;
+  status: string | null;
+  container_status: 'running' | 'stopped' | 'error' | null;
+  last_active: string | null;
+  created_at: string;
+  group_name: string;
+}
+
+export interface ContainerState {
+  current_tool: string | null;
+  tool_declared_timeout_ms: number | null;
+  tool_started_at: string | null;
+}
+
+export interface SessionDetail extends SessionWithGroup {
+  container_state: ContainerState | null;
+}
