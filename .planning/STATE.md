@@ -5,8 +5,8 @@
 
 ## Status
 
-Current phase: Phase 3 — Group Detail, Members, Destinations & Sessions Index
-Next action: Plan and execute Phase 3
+Current phase: Phase 4 — Per-Session Message Log Viewer
+Next action: Plan and execute Phase 4
 
 ## Project Reference
 
@@ -24,7 +24,7 @@ v1.0 — Ops Panel Launch (6 phases, 29 requirements)
 |---|------|--------|--------------|
 | 1 | Foundation & Deploy | Complete | 6 |
 | 2 | Groups Overview & System Health | Complete | 3 |
-| 3 | Group Detail, Members, Destinations & Sessions Index | Not started | 8 |
+| 3 | Group Detail, Members, Destinations & Sessions Index | Complete | 8 |
 | 4 | Per-Session Message Log Viewer | Not started | 5 |
 | 5 | Group Admin — Restart & Member Management | Not started | 3 |
 | 6 | Pending Command Approvals Queue | Not started | 4 |
@@ -37,6 +37,7 @@ v1.0 — Ops Panel Launch (6 phases, 29 requirements)
 - 2026-05-28: Phase 1 execution complete (all 24 files, pushed to main)
 - 2026-05-28: SSH deploy key configured — can now push directly
 - 2026-05-28: Phase 2 execution complete (groups list, health stats, pushed to main)
+- 2026-05-28: Phase 3 execution complete (group detail, sessions index/detail, 6 API endpoints, 3 UI pages, pushed)
 
 ## Confirmed Infrastructure (SSH-verified 2026-05-28)
 

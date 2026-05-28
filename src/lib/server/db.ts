@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup } from '$lib/types';
+import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message } from '$lib/types';
 
 const _dbPath = process.env.NANOCLAW_DB;
 if (!_dbPath) {
@@ -211,4 +211,73 @@ export function getSessionById(id: string): SessionWithGroup | null {
   `).get(id) as SessionWithGroup | undefined;
 
   return row ?? null;
+}
+
+import { getSessionDbPair } from '$lib/server/session-db-pool';
+
+export interface GetSessionMessagesOpts {
+  search?: string;
+  kind?: string;
+  since?: string;
+  until?: string;
+  limit?: number;
+}
+
+export function getSessionMessages(
+  groupId: number,
+  sessionId: string,
+  opts: GetSessionMessagesOpts = {}
+): Message[] {
+  const { search, kind, since, until, limit = 200 } = opts;
+  const cap = Math.min(limit, 500);
+
+  try {
+    const { inbound, outbound } = getSessionDbPair(groupId, sessionId);
+
+    const buildWhere = (extra: string[] = []): string => {
+      const clauses: string[] = [...extra];
+      if (kind) clauses.push('kind = ?');
+      if (since) clauses.push('timestamp >= ?');
+      if (until) clauses.push('timestamp <= ?');
+      if (search) clauses.push("content LIKE ?");
+      return clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
+    };
+
+    const buildParams = (extra: unknown[] = []): unknown[] => {
+      const params: unknown[] = [...extra];
+      if (kind) params.push(kind);
+      if (since) params.push(since);
+      if (until) params.push(until);
+      if (search) params.push(`%${search}%`);
+      return params;
+    };
+
+    const inParams = buildParams();
+    inParams.push(cap);
+
+    const outParams = buildParams();
+    outParams.push(cap);
+
+    const inRows: Message[] = inbound
+      ? (inbound.prepare(
+          `SELECT id, seq, kind, timestamp, content, platform_id, channel_type, thread_id
+           FROM messages_in ${buildWhere()} ORDER BY timestamp ASC LIMIT ?`
+        ).all(inParams) as Array<Omit<Message, 'direction'>>).map(r => ({ ...r, direction: 'in' as const }))
+      : [];
+
+    const outRows: Message[] = outbound
+      ? (outbound.prepare(
+          `SELECT id, seq, kind, timestamp, content, platform_id, channel_type, thread_id
+           FROM messages_out ${buildWhere()} ORDER BY timestamp ASC LIMIT ?`
+        ).all(outParams) as Array<Omit<Message, 'direction'>>).map(r => ({ ...r, direction: 'out' as const }))
+      : [];
+
+    // Merge and sort by timestamp, then cap
+    return [...inRows, ...outRows]
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+      .slice(0, cap);
+  } catch (err) {
+    console.error('[getSessionMessages] error:', err);
+    return [];
+  }
 }

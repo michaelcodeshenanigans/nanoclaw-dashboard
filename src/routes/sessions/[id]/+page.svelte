@@ -176,4 +176,14 @@
       </dl>
     {/if}
   </section>
+
+  <!-- Messages link -->
+  <div class="flex justify-end">
+    <a
+      href={`/sessions/${id}/messages`}
+      class="rounded-md bg-[hsl(var(--accent))] px-4 py-2 text-sm font-medium text-[hsl(var(--accent-foreground))] hover:opacity-90 transition-opacity"
+    >
+      View messages →
+    </a>
+  </div>
 </div>

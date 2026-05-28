@@ -95,3 +95,15 @@ export interface ContainerState {
 export interface SessionDetail extends SessionWithGroup {
   container_state: ContainerState | null;
 }
+
+export interface Message {
+  id: string;
+  seq: number | null;
+  kind: string;
+  direction: 'in' | 'out';
+  timestamp: string;
+  content: string;
+  platform_id: string | null;
+  channel_type: string | null;
+  thread_id: string | null;
+}
