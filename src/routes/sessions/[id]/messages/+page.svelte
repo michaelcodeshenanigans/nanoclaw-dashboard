@@ -1,12 +1,11 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { createPoller } from '$lib/poll';
+  import { createPoller, type PollState } from '$lib/poll';
   import { format } from 'date-fns';
   import type { Message } from '$lib/types';
 
   const id = $page.params.id;
 
-  // Filter state — read inside fetchFn on each poll.
   let search = $state('');
   let kind = $state('');
   let timeRange = $state('');
@@ -32,10 +31,17 @@
     return qs ? `/api/sessions/${id}/messages?${qs}` : `/api/sessions/${id}/messages`;
   }
 
-  const messages = createPoller<Message[]>(
-    (signal) => fetch(buildUrl(), { signal }).then((r) => r.json()),
-    5000
-  );
+  let messages = $state<PollState<Message[]>>({ data: null, loading: true, error: null, lastUpdated: null });
+
+  $effect(() => {
+    const url = buildUrl();
+    const p = createPoller<Message[]>(
+      (signal) => fetch(url, { signal }).then((r) => r.json()),
+      5000,
+      (s) => { messages = s; }
+    );
+    return () => p.stop();
+  });
 
   function truncate(s: string, n = 200): string {
     if (s.length <= n) return s;

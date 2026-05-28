@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { createPoller } from '$lib/poll';
+  import { createPoller, type PollState } from '$lib/poll';
   import { formatDistanceToNow, format } from 'date-fns';
   import type {
     GroupDetail,
@@ -11,22 +11,46 @@
 
   const id = $page.params.id;
 
-  const detail = createPoller<GroupDetail | null>(
-    () => fetch(`/api/groups/${id}`).then((r) => (r.ok ? r.json() : null)),
-    5000
-  );
-  const members = createPoller<Member[]>(
-    () => fetch(`/api/groups/${id}/members`).then((r) => r.json()),
-    10000
-  );
-  const destinations = createPoller<Destination[]>(
-    () => fetch(`/api/groups/${id}/destinations`).then((r) => r.json()),
-    10000
-  );
-  const sessions = createPoller<SessionSummary[]>(
-    () => fetch(`/api/groups/${id}/sessions`).then((r) => r.json()),
-    5000
-  );
+  let detail = $state<PollState<GroupDetail | null>>({ data: null, loading: true, error: null, lastUpdated: null });
+  let members = $state<PollState<Member[]>>({ data: null, loading: true, error: null, lastUpdated: null });
+  let destinations = $state<PollState<Destination[]>>({ data: null, loading: true, error: null, lastUpdated: null });
+  let sessions = $state<PollState<SessionSummary[]>>({ data: null, loading: true, error: null, lastUpdated: null });
+
+  $effect(() => {
+    const p = createPoller<GroupDetail | null>(
+      (signal) => fetch(`/api/groups/${id}`, { signal }).then((r) => (r.ok ? r.json() : null)),
+      5000,
+      (s) => { detail = s; }
+    );
+    return () => p.stop();
+  });
+
+  $effect(() => {
+    const p = createPoller<Member[]>(
+      (signal) => fetch(`/api/groups/${id}/members`, { signal }).then((r) => r.json()),
+      10000,
+      (s) => { members = s; }
+    );
+    return () => p.stop();
+  });
+
+  $effect(() => {
+    const p = createPoller<Destination[]>(
+      (signal) => fetch(`/api/groups/${id}/destinations`, { signal }).then((r) => r.json()),
+      10000,
+      (s) => { destinations = s; }
+    );
+    return () => p.stop();
+  });
+
+  $effect(() => {
+    const p = createPoller<SessionSummary[]>(
+      (signal) => fetch(`/api/groups/${id}/sessions`, { signal }).then((r) => r.json()),
+      5000,
+      (s) => { sessions = s; }
+    );
+    return () => p.stop();
+  });
 
   // Restart state
   let restartRebuild = $state(false);

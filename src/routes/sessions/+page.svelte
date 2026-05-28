@@ -1,14 +1,12 @@
 <script lang="ts">
-  import { createPoller } from '$lib/poll';
+  import { createPoller, type PollState } from '$lib/poll';
   import { formatDistanceToNow } from 'date-fns';
   import type { Group, SessionWithGroup } from '$lib/types';
 
-  // Filter state — read inside fetchFn so each poll cycle uses current values.
-  let groupId = $state<number | null>(null);
+  let groupId = $state<string | null>(null);
   let containerStatus = $state<string | null>(null);
-  let timeRange = $state<string | null>(null); // null | "1h" | "24h" | "7d"
+  let timeRange = $state<string | null>(null);
 
-  // Groups dropdown — fetched once on first run.
   let groups = $state<Group[]>([]);
   let groupsLoaded = $state(false);
 
@@ -38,7 +36,7 @@
 
   function buildUrl(): string {
     const params = new URLSearchParams();
-    if (groupId !== null) params.set('groupId', String(groupId));
+    if (groupId !== null) params.set('groupId', groupId);
     if (containerStatus) params.set('containerStatus', containerStatus);
     const since = sinceFromRange(timeRange);
     if (since) params.set('since', since);
@@ -46,12 +44,17 @@
     return qs ? `/api/sessions?${qs}` : '/api/sessions';
   }
 
-  // fetchFn closes over the reactive filter state — createPoller calls it each
-  // interval, so updated filters take effect on the next poll automatically.
-  const sessions = createPoller<SessionWithGroup[]>(
-    (signal) => fetch(buildUrl(), { signal }).then((r) => r.json()),
-    5000
-  );
+  let sessions = $state<PollState<SessionWithGroup[]>>({ data: null, loading: true, error: null, lastUpdated: null });
+
+  $effect(() => {
+    const url = buildUrl();
+    const p = createPoller<SessionWithGroup[]>(
+      (signal) => fetch(url, { signal }).then((r) => r.json()),
+      5000,
+      (s) => { sessions = s; }
+    );
+    return () => p.stop();
+  });
 
   function statusClass(status: string | null | undefined): string {
     if (status === 'running') return 'bg-green-500';

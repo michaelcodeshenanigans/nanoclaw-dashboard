@@ -1,54 +1,49 @@
 export interface PollState<T> {
-  readonly data: T | null;
-  readonly loading: boolean;
-  readonly error: string | null;
-  readonly lastUpdated: Date | null;
+  data: T | null;
+  loading: boolean;
+  error: string | null;
+  lastUpdated: Date | null;
 }
 
 export function createPoller<T>(
   fetchFn: (signal: AbortSignal) => Promise<T>,
-  intervalMs = 5000
-): PollState<T> {
-  let data = $state<T | null>(null);
-  let loading = $state(true);
-  let error = $state<string | null>(null);
-  let lastUpdated = $state<Date | null>(null);
+  intervalMs: number,
+  onUpdate: (state: PollState<T>) => void
+): { stop(): void } {
+  let stopped = false;
+  let abortController = new AbortController();
+  let lastData: T | null = null;
 
-  $effect(() => {
-    let abortController = new AbortController();
-
-    async function poll() {
-      try {
-        const result = await fetchFn(abortController.signal);
-        data = result;
-        error = null;
-        lastUpdated = new Date();
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return;
-        error = err instanceof Error ? err.message : String(err);
-      } finally {
-        loading = false;
-      }
+  async function poll(): Promise<void> {
+    try {
+      const result = await fetchFn(abortController.signal);
+      if (stopped) return;
+      lastData = result;
+      onUpdate({ data: result, loading: false, error: null, lastUpdated: new Date() });
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      if (stopped) return;
+      onUpdate({
+        data: lastData,
+        loading: false,
+        error: err instanceof Error ? err.message : String(err),
+        lastUpdated: null
+      });
     }
+  }
 
+  poll();
+  const id = setInterval(() => {
+    abortController.abort();
+    abortController = new AbortController();
     poll();
-
-    const id = setInterval(() => {
-      abortController.abort();
-      abortController = new AbortController();
-      poll();
-    }, intervalMs);
-
-    return () => {
-      abortController.abort();
-      clearInterval(id);
-    };
-  });
+  }, intervalMs);
 
   return {
-    get data() { return data; },
-    get loading() { return loading; },
-    get error() { return error; },
-    get lastUpdated() { return lastUpdated; }
+    stop() {
+      stopped = true;
+      abortController.abort();
+      clearInterval(id);
+    }
   };
 }

@@ -1,24 +1,35 @@
 <script lang="ts">
-  import { createPoller } from '$lib/poll';
+  import { createPoller, type PollState } from '$lib/poll';
   import type { HealthStatus, HealthStats } from '$lib/types';
 
-  const health = createPoller<HealthStatus>(
-    (signal) =>
-      fetch('/api/health', { signal }).then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      }),
-    5000
-  );
+  let health = $state<PollState<HealthStatus>>({ data: null, loading: true, error: null, lastUpdated: null });
+  let stats = $state<PollState<HealthStats>>({ data: null, loading: true, error: null, lastUpdated: null });
 
-  const stats = createPoller<HealthStats>(
-    (signal) =>
-      fetch('/api/stats', { signal }).then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      }),
-    5000
-  );
+  $effect(() => {
+    const p = createPoller<HealthStatus>(
+      (signal) =>
+        fetch('/api/health', { signal }).then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        }),
+      5000,
+      (s) => { health = s; }
+    );
+    return () => p.stop();
+  });
+
+  $effect(() => {
+    const p = createPoller<HealthStats>(
+      (signal) =>
+        fetch('/api/stats', { signal }).then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        }),
+      5000,
+      (s) => { stats = s; }
+    );
+    return () => p.stop();
+  });
 </script>
 
 <div class="p-8">
@@ -68,7 +79,7 @@
       </div>
 
       <!-- System stats card -->
-      <div class="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6">
+      <div class="rounded-lg border border-[hsl(var(--card))] bg-[hsl(var(--card))] p-6">
         <h2 class="text-sm font-semibold text-[hsl(var(--foreground))] mb-4">System</h2>
 
         {#if stats.loading}

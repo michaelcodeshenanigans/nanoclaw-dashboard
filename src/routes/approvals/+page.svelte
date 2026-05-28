@@ -1,18 +1,24 @@
 <script lang="ts">
-  import { createPoller } from '$lib/poll';
+  import { createPoller, type PollState } from '$lib/poll';
   import type { PendingApproval } from '$lib/types';
   import { formatDistanceToNow } from 'date-fns';
 
   let statusFilter = $state('pending');
+  let approvals = $state<PollState<PendingApproval[]>>({ data: null, loading: true, error: null, lastUpdated: null });
 
-  const approvals = createPoller<PendingApproval[]>(
-    (signal) =>
-      fetch(`/api/approvals?status=${statusFilter}`, { signal }).then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      }),
-    5000
-  );
+  $effect(() => {
+    const status = statusFilter;
+    const p = createPoller<PendingApproval[]>(
+      (signal) =>
+        fetch(`/api/approvals?status=${status}`, { signal }).then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        }),
+      5000,
+      (s) => { approvals = s; }
+    );
+    return () => p.stop();
+  });
 
   function statusBadge(status: string): string {
     switch (status) {

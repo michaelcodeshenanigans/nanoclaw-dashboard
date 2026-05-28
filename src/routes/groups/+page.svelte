@@ -1,16 +1,22 @@
 <script lang="ts">
-  import { createPoller } from '$lib/poll';
+  import { createPoller, type PollState } from '$lib/poll';
   import type { Group } from '$lib/types';
   import { formatDistanceToNow } from 'date-fns';
 
-  const groups = createPoller<Group[]>(
-    (signal) =>
-      fetch('/api/groups', { signal }).then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      }),
-    5000
-  );
+  let groups = $state<PollState<Group[]>>({ data: null, loading: true, error: null, lastUpdated: null });
+
+  $effect(() => {
+    const p = createPoller<Group[]>(
+      (signal) =>
+        fetch('/api/groups', { signal }).then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        }),
+      5000,
+      (s) => { groups = s; }
+    );
+    return () => p.stop();
+  });
 
   function statusColor(status: Group['container_status']): string {
     switch (status) {

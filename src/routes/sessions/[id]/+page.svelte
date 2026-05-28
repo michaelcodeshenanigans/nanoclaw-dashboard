@@ -1,15 +1,21 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { createPoller } from '$lib/poll';
+  import { createPoller, type PollState } from '$lib/poll';
   import { formatDistanceToNow, format } from 'date-fns';
   import type { SessionDetail } from '$lib/types';
 
   const id = $page.params.id;
 
-  const session = createPoller<SessionDetail | null>(
-    (signal) => fetch(`/api/sessions/${id}`, { signal }).then((r) => (r.ok ? r.json() : null)),
-    5000
-  );
+  let session = $state<PollState<SessionDetail | null>>({ data: null, loading: true, error: null, lastUpdated: null });
+
+  $effect(() => {
+    const p = createPoller<SessionDetail | null>(
+      (signal) => fetch(`/api/sessions/${id}`, { signal }).then((r) => (r.ok ? r.json() : null)),
+      5000,
+      (s) => { session = s; }
+    );
+    return () => p.stop();
+  });
 
   function statusClass(status: string | null | undefined): string {
     if (status === 'running') return 'bg-green-500';

@@ -1,6 +1,6 @@
 <script lang="ts">
   import '../app.css';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
 
   const navItems = [
     { href: '/', label: 'Overview' },
@@ -10,6 +10,11 @@
   ] as const;
 
   let { children } = $props();
+
+  function isActive(href: string): boolean {
+    if (href === '/') return page.url.pathname === '/';
+    return page.url.pathname.startsWith(href);
+  }
 </script>
 
 <svelte:head>
@@ -24,11 +29,10 @@
     </div>
     <nav class="flex-1 py-4 px-2 space-y-1">
       {#each navItems as item}
-        {@const isActive = $page.url.pathname === item.href || ($page.url.pathname.startsWith(item.href) && item.href !== '/')}
         <a
           href={item.href}
           class="flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
-            {isActive
+            {isActive(item.href)
               ? 'bg-[hsl(var(--accent))] text-[hsl(var(--foreground))] font-medium'
               : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))]'}"
         >
