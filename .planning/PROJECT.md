@@ -54,12 +54,20 @@ An operator can see what every agent group is doing right now and take action (r
 - `messages_out` — id, seq, timestamp, kind, platform_id, channel_type, content
 - `container_state` — current_tool, tool_declared_timeout_ms, tool_started_at (per-session outbound.db)
 
+**Confirmed host paths (SSH-verified 2026-05-28):**
+- NanoClaw root: `/home/michael/workspace/nanoclaw-v2/`
+- Central DB: `data/v2.db`
+- ncl socket: `data/ncl.sock`
+- Session DBs: `data/v2-sessions/<agent-group-id>/<session-id>/inbound.db` (and `outbound.db`)
+- Session dirs also contain: `agent/`, `extra/`, `group/`, `outbox/`
+
 **Host infrastructure:**
 - Linux/Docker, Saltbox setup, Traefik reverse proxy with label-based routing
 - Auth: Authelia at marinemr.xyz — add `authelia@docker` middleware label to protect route
 - TLS: `cfdns` cert resolver, wildcard `*.marinemr.xyz`
+- Docker proxy network: `saltbox` (Saltbox standard)
 - NanoClaw lives at `/home/michael/workspace/nanoclaw-v2` on the host
-- GitHub repo for dashboard: `michaelcodeshenanigans/nanoclaw-dashboard`
+- GitHub repo for dashboard: `michaelcodeshenanigans/nanoclaw-dashboard` (pending Mike sign-off)
 
 **Upstream NanoClaw source:** `nanocoai/nanoclaw` (TypeScript, 29.5k stars)
 

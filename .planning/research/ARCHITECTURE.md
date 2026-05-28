@@ -80,6 +80,9 @@ services:
       - /home/michael/workspace/nanoclaw-v2/data:/nanoclaw-data:ro
     environment:
       - NANOCLAW_DATA_DIR=/nanoclaw-data
+      # Central DB: /nanoclaw-data/v2.db
+      # ncl socket: /nanoclaw-data/ncl.sock
+      # Session DBs: /nanoclaw-data/v2-sessions/<ag-id>/<sess-id>/inbound.db
 ```
 
 **Important:** Mount as `:ro` (read-only) — the dashboard must NEVER write to NanoClaw's SQLite files directly. All writes go through ncl.
@@ -94,19 +97,22 @@ const db = new Database(`${NANOCLAW_DATA_DIR}/nanoclaw.db`, { readonly: true })
 
 NanoClaw creates a pair of DBs per session. The dashboard needs to find them.
 
+**Confirmed path pattern (SSH-verified 2026-05-28):**
 ```
-Pattern: {data_dir}/groups/{group_folder}/sessions/{session_id}/inbound.db
-          {data_dir}/groups/{group_folder}/sessions/{session_id}/outbound.db
+{data_dir}/v2-sessions/<agent-group-id>/<session-id>/inbound.db
+{data_dir}/v2-sessions/<agent-group-id>/<session-id>/outbound.db
 ```
+
+Note: path is keyed by **agent_group_id** (not group folder), so no join needed for path construction.
 
 Discovery approach:
 ```typescript
-function findSessionDbs(dataDir: string, sessionId: string): { inbound: string, outbound: string } | null {
-  // Query the main DB first to get group folder
-  const session = mainDb.prepare('SELECT agent_groups.folder FROM sessions JOIN agent_groups ON sessions.agent_group_id = agent_groups.id WHERE sessions.id = ?').get(sessionId)
-  if (!session) return null
-  const base = path.join(dataDir, 'groups', session.folder, 'sessions', sessionId)
-  return { inbound: path.join(base, 'inbound.db'), outbound: path.join(base, 'outbound.db') }
+function findSessionDbs(dataDir: string, agentGroupId: string, sessionId: string): { inbound: string, outbound: string } {
+  const base = path.join(dataDir, 'v2-sessions', agentGroupId, sessionId)
+  return {
+    inbound: path.join(base, 'inbound.db'),
+    outbound: path.join(base, 'outbound.db')
+  }
 }
 ```
 
@@ -115,23 +121,38 @@ Cache opened DB connections (LRU cache, max 50 connections) to avoid per-request
 ### 3. ncl CLI Access from Docker
 
 **Option A: Mount the ncl socket (preferred)**
+
+**Confirmed socket path (SSH-verified 2026-05-28):** `/home/michael/workspace/nanoclaw-v2/data/ncl.sock`
+
 ```yaml
 volumes:
-  - /home/michael/workspace/nanoclaw-v2/nanoclaw.sock:/nanoclaw.sock
+  - /home/michael/workspace/nanoclaw-v2/data:/nanoclaw-data:ro
+  # Socket is inside the data dir — already mounted above (rw needed for socket access)
+  # Override the data mount to allow socket writes:
+  - /home/michael/workspace/nanoclaw-v2/data/ncl.sock:/nanoclaw-data/ncl.sock
 environment:
-  - NCL_SOCKET=/nanoclaw.sock
+  - NCL_SOCKET=/nanoclaw-data/ncl.sock
+```
+
+Or mount the socket separately:
+```yaml
+volumes:
+  - /home/michael/workspace/nanoclaw-v2/data:/nanoclaw-data:ro
+  - /home/michael/workspace/nanoclaw-v2/data/ncl.sock:/ncl.sock
+environment:
+  - NCL_SOCKET=/ncl.sock
 ```
 
 Then in the backend, exec ncl with the socket path:
 ```bash
-NCL_SOCKET=/nanoclaw.sock ncl groups restart --id <id>
+NCL_SOCKET=/ncl.sock ncl groups restart --id <id>
 ```
 
 **Option B: Mount the ncl binary + socket**
 ```yaml
 volumes:
   - /usr/local/bin/ncl:/usr/local/bin/ncl:ro
-  - /home/michael/workspace/nanoclaw-v2/nanoclaw.sock:/nanoclaw.sock
+  - /home/michael/workspace/nanoclaw-v2/data/ncl.sock:/ncl.sock
 ```
 
 **Option C: HTTP endpoint on NanoClaw (if one is added)**
@@ -156,17 +177,18 @@ services:
       - "traefik.http.services.nanoclaw-dashboard.loadbalancer.server.port=3001"
     volumes:
       - /home/michael/workspace/nanoclaw-v2/data:/nanoclaw-data:ro
-      - /home/michael/workspace/nanoclaw-v2/nanoclaw.sock:/nanoclaw.sock
+      - /home/michael/workspace/nanoclaw-v2/data/ncl.sock:/ncl.sock
     environment:
       - NODE_ENV=production
       - NANOCLAW_DATA_DIR=/nanoclaw-data
-      - NCL_SOCKET=/nanoclaw.sock
+      - NANOCLAW_DB=/nanoclaw-data/v2.db
+      - NCL_SOCKET=/ncl.sock
       - PORT=3001
     networks:
-      - proxy  # Traefik's network
+      - saltbox  # Saltbox's standard Traefik proxy network
 
 networks:
-  proxy:
+  saltbox:
     external: true
 ```
 

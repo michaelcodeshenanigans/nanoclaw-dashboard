@@ -34,11 +34,18 @@ v1.0 — Ops Panel Launch (6 phases, 29 requirements)
 - 2026-05-28: Project initialized (PROJECT.md, REQUIREMENTS.md, research/)
 - 2026-05-28: Roadmap created (6 phases, 29/29 requirements mapped)
 
+## Confirmed Infrastructure (SSH-verified 2026-05-28)
+
+- **ncl socket:** `/home/michael/workspace/nanoclaw-v2/data/ncl.sock`
+- **Central DB:** `/home/michael/workspace/nanoclaw-v2/data/v2.db`
+- **Session DBs:** `data/v2-sessions/<agent-group-id>/<session-id>/{inbound,outbound}.db`
+- **Docker network:** `saltbox`
+- **GitHub repo:** `michaelcodeshenanigans/nanoclaw-dashboard` (pending Mike sign-off)
+
 ## Open Questions / Risks
 
-- ncl Unix socket path on the NanoClaw host — must be confirmed before Phase 1 plan-check
-- Container user UID/GID for socket access — to be resolved in Phase 1 discussion
-- NanoClaw central DB exact path on host — assumed under `/home/michael/workspace/nanoclaw-v2/` per PROJECT.md
+- Container user UID/GID for ncl socket access — verify write perms in Phase 1
+- Mike sign-off required before creating GitHub repo and executing Phase 1
 
 ---
-*State updated: 2026-05-28 after roadmap creation*
+*State updated: 2026-05-28 after infrastructure confirmation*
