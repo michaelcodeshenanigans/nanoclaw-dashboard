@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval } from '$lib/types';
+import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask } from '$lib/types';
 
 type BetterDB = InstanceType<typeof Database>;
 
@@ -321,4 +321,111 @@ export function getPendingApprovals(status = 'pending'): PendingApproval[] {
 
   const safeStatus = ALLOWED_APPROVAL_STATUSES.has(status) ? status : 'pending';
   return db.prepare(baseQuery + ' WHERE a.status = ? ORDER BY a.created_at DESC LIMIT 100').all(safeStatus) as PendingApproval[];
+}
+
+export interface DroppedFilters {
+  agentGroupId?: string;
+  channelType?: string;
+}
+
+export function getUnregisteredSenders(filters: DroppedFilters = {}): UnregisteredSender[] {
+  const where: string[] = [];
+  const params: string[] = [];
+
+  if (filters.agentGroupId) {
+    where.push('u.agent_group_id = ?');
+    params.push(filters.agentGroupId);
+  }
+  if (filters.channelType) {
+    where.push('u.channel_type = ?');
+    params.push(filters.channelType);
+  }
+
+  const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+
+  return db.prepare(`
+    SELECT
+      u.channel_type,
+      u.platform_id,
+      u.user_id,
+      u.sender_name,
+      u.reason,
+      u.messaging_group_id,
+      u.agent_group_id,
+      u.message_count,
+      u.first_seen,
+      u.last_seen,
+      g.name AS group_name
+    FROM unregistered_senders u
+    LEFT JOIN agent_groups g ON g.id = u.agent_group_id
+    ${whereSql}
+    ORDER BY u.last_seen DESC
+    LIMIT 200
+  `).all(...params) as UnregisteredSender[];
+}
+
+export function getScheduledTasks(): ScheduledTask[] {
+  const sessions = db.prepare(`
+    SELECT
+      s.id AS session_id,
+      s.agent_group_id,
+      g.name AS group_name
+    FROM sessions s
+    JOIN agent_groups g ON g.id = s.agent_group_id
+    ORDER BY s.last_active DESC
+  `).all() as Array<{ session_id: string; agent_group_id: string; group_name: string }>;
+
+  const seen = new Set<string>();
+  const results: ScheduledTask[] = [];
+
+  for (const session of sessions) {
+    if (seen.has(session.agent_group_id)) continue;
+
+    try {
+      const { inbound } = getSessionDbPair(session.agent_group_id, session.session_id);
+      if (!inbound) continue;
+
+      const rows = inbound.prepare(`
+        SELECT series_id AS id, status, process_after, recurrence, content, MAX(seq)
+        FROM messages_in
+        WHERE kind = 'task' AND status IN ('pending', 'paused')
+        GROUP BY series_id
+        ORDER BY process_after ASC
+      `).all() as Array<{
+        id: string;
+        status: 'pending' | 'paused';
+        process_after: string | null;
+        recurrence: string | null;
+        content: string;
+      }>;
+
+      for (const row of rows) {
+        seen.add(session.agent_group_id);
+        let prompt = '';
+        let script: string | null = null;
+        try {
+          const parsed = JSON.parse(row.content) as { prompt?: string; script?: string };
+          prompt = parsed.prompt ?? '';
+          script = parsed.script ?? null;
+        } catch {
+          prompt = row.content.slice(0, 120);
+        }
+        results.push({
+          id: row.id,
+          status: row.status,
+          process_after: row.process_after,
+          recurrence: row.recurrence,
+          prompt,
+          script,
+          agent_group_id: session.agent_group_id,
+          group_name: session.group_name,
+          session_id: session.session_id
+        });
+      }
+    } catch {
+      // session DB not accessible — skip
+    }
+  }
+
+  return results;
 }

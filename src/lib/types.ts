@@ -108,6 +108,32 @@ export interface Message {
   thread_id: string | null;
 }
 
+export interface UnregisteredSender {
+  channel_type: string;
+  platform_id: string;
+  user_id: string | null;
+  sender_name: string | null;
+  reason: string;
+  messaging_group_id: string | null;
+  agent_group_id: string | null;
+  message_count: number;
+  first_seen: string;
+  last_seen: string;
+  group_name: string | null;
+}
+
+export interface ScheduledTask {
+  id: string;
+  status: 'pending' | 'paused';
+  process_after: string | null;
+  recurrence: string | null;
+  prompt: string;
+  script: string | null;
+  agent_group_id: string;
+  group_name: string;
+  session_id: string;
+}
+
 export interface PendingApproval {
   approval_id: string;
   session_id: string | null;

@@ -6,7 +6,9 @@
     { href: '/', label: 'Overview' },
     { href: '/groups', label: 'Groups' },
     { href: '/sessions', label: 'Sessions' },
-    { href: '/approvals', label: 'Approvals' }
+    { href: '/approvals', label: 'Approvals' },
+    { href: '/dropped', label: 'Dropped' },
+    { href: '/tasks', label: 'Tasks' }
   ] as const;
 
   let { children } = $props();
