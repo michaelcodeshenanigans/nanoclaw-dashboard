@@ -73,7 +73,7 @@ An operator can see what every agent group is doing right now and take action (r
 
 ## Constraints
 
-- **Stack**: Node.js (Hono) backend + Svelte frontend — must stay lightweight; no heavy ORMs or frameworks
+- **Stack**: SvelteKit (Node adapter) — full-stack framework; no separate API server needed
 - **Data access**: Must read NanoClaw SQLite DB directly (mount volume) and exec `ncl` for write ops
 - **Deployment**: Single Docker container; must include Traefik + Authelia labels in compose config
 - **Auth**: Authelia handles all authentication — dashboard does not implement its own auth
@@ -84,12 +84,11 @@ An operator can see what every agent group is doing right now and take action (r
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Hono for backend | Ultralight, fast, TypeScript-native, perfect for a thin API proxy layer | — Pending |
-| Svelte for frontend | Reactive without heavy bundle, good for ops dashboards, minimal boilerplate | — Pending |
+| SvelteKit over Hono+Svelte SPA | Collapses two build pipelines into one; `+server.ts` routes replace Hono routes with no capability loss; `adapter-node` gives same Docker footprint; eliminates Vite proxy and monorepo wiring | ✓ Confirmed by Mike |
 | Direct SQLite reads (not ncl for reads) | ncl is socket-based with no batch/query API; direct DB reads are faster and simpler for list/search | — Pending |
 | ncl exec for write ops | ncl is the authoritative write interface; reimplementing its logic would create drift | — Pending |
 | Polling (not WebSocket) for v1 | Simpler infrastructure; 5-second polling is fine for an ops panel | — Pending |
-| Single Docker container (backend serves frontend build) | Simpler compose config, one Traefik entry, easier to maintain | — Pending |
+| Single Docker container | SvelteKit adapter-node serves both pages and API; one container, one Traefik entry | — Pending |
 
 ---
 *Last updated: 2026-05-28 after initialization*

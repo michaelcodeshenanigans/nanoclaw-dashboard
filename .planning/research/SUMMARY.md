@@ -7,13 +7,12 @@
 
 ### Stack
 
-**Recommended:** Hono (backend) + Svelte 5 (frontend) + better-sqlite3 + pnpm workspaces
+**Recommended:** SvelteKit (Node adapter) + better-sqlite3 + shadcn-svelte + Tailwind 4
 
-- **Hono** is the clear choice for a thin API proxy layer — ultralight, TypeScript-native, runs on Node.js, serves static files. No alternatives come close for this use case.
-- **Svelte 5** with Vite builds to a minimal SPA served by Hono. SvelteKit would add SSR complexity we don't need.
-- **better-sqlite3** (synchronous) is correct for read-heavy dashboard queries. Don't use async wrappers; don't use ORMs.
+- **SvelteKit** with `@sveltejs/adapter-node` replaces the original Hono+Svelte SPA plan. It collapses two build pipelines into one, eliminates Vite proxy config and monorepo wiring, and `+server.ts` routes call `better-sqlite3` / `execFile` identically to Hono routes. `adapter-node` outputs `build/index.js` — same Docker footprint. Confirmed correct by Mike.
+- **better-sqlite3** (synchronous) is correct for read-heavy dashboard queries. Server-only via `$lib/server/` — never bundled to client.
 - **shadcn-svelte** + Tailwind 4 gives the dark-theme component library without building from scratch.
-- **pnpm workspaces** for monorepo: `packages/backend` + `packages/frontend` + `packages/shared` (types).
+- **Single `package.json`** — no monorepo needed with SvelteKit.
 
 ### Architecture
 

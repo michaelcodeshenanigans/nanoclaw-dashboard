@@ -1,7 +1,7 @@
 # Stack Research
 
-**Domain:** Admin ops dashboard — Node.js backend + Svelte frontend, single Docker container
-**Researched:** 2026-05-28
+**Domain:** Admin ops dashboard — SvelteKit (Node adapter), single Docker container
+**Researched:** 2026-05-28 (revised: switched from Hono+SPA to SvelteKit after Mike review)
 **Confidence:** HIGH
 
 ## Recommended Stack
@@ -10,119 +10,149 @@
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Hono | 4.x | Backend HTTP framework | Ultralight (~14KB), TypeScript-native, runs on Node/Bun/Deno/Edge. Perfect for a thin API proxy. No bloat. |
-| Svelte 5 | 5.x | Frontend UI framework | Runes-based reactivity, minimal bundle, compiles away. Better than SvelteKit for a single-page ops panel served from one backend. |
-| Vite | 6.x | Frontend build tool | Native Svelte 5 support, fast HMR in dev, optimized production builds |
-| better-sqlite3 | 11.x | SQLite access (sync) | Synchronous API is ideal for a backend that does many small reads. WAL mode support. Better than sql.js or async wrappers for this pattern. |
-| TypeScript | 5.x | Language | Shared types between backend and frontend via `packages/shared/` |
-| pnpm | 9.x | Package manager + workspace | Monorepo workspaces: `packages/backend`, `packages/frontend`, `packages/shared` |
+| SvelteKit | 2.x | Full-stack framework | Svelte 5 + Vite + API routes + SSR in one package. `@sveltejs/adapter-node` outputs `build/index.js` — same single-container Docker pattern, zero extra glue. Eliminates separate Hono server, Vite proxy config, and monorepo wiring. |
+| `@sveltejs/adapter-node` | 5.x | Node.js deployment adapter | Compiles SvelteKit to a standalone Node.js server (`node build/index.js`). Correct adapter for Docker deployment. |
+| better-sqlite3 | 11.x | SQLite access (sync) | Used in SvelteKit server routes (`+server.ts`, `+page.server.ts`). Sync API is ideal for read-heavy dashboard queries. Auto-excluded from client bundle via `$lib/server/`. |
+| TypeScript | 5.x | Language | SvelteKit projects are TypeScript-native. Shared types in `$lib/types.ts` work across server and client without a separate package. |
+| pnpm | 9.x | Package manager | Single `package.json` — no monorepo needed. |
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| @hono/node-server | 1.x | Node.js adapter for Hono | Required to run Hono on Node.js (vs Bun) |
-| @hono/cors | built-in | CORS for API | Dev only — in prod, frontend is served from same origin |
-| zod | 3.x | Request validation | Validate query params and body on API routes |
+| zod | 3.x | Request validation | Validate query params and request bodies in `+server.ts` handlers |
 | shadcn-svelte | latest | Dark-theme UI components | Best dark-mode component library for Svelte 5. Tailwind-based, customizable. |
-| tailwindcss | 4.x | Utility CSS | Required by shadcn-svelte; also ideal for ops dashboard layouts |
-| lucide-svelte | latest | Icons | Clean icon set, good Svelte integration |
-| date-fns | 3.x | Date formatting | Format timestamps from SQLite (ISO strings) |
-| @tanstack/svelte-table | 8.x | Data tables | Powerful headless table for message logs / session lists |
+| tailwindcss | 4.x | Utility CSS | Required by shadcn-svelte; SvelteKit has first-class Tailwind support |
+| lucide-svelte | latest | Icons | Clean icon set, works well with Svelte 5 runes |
+| date-fns | 3.x | Date formatting | Format SQLite ISO timestamps for display |
+| @tanstack/svelte-table | 8.x | Data tables | Headless table for message logs / session lists with sorting and filtering |
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| tsx | TypeScript executor for Node | Run backend in dev without compile step |
-| vite-node | Node backend with Vite HMR | Alternative to tsx for backend dev |
-| @sveltejs/vite-plugin-svelte | Svelte 5 Vite integration | Required in vite.config.ts |
-| eslint + typescript-eslint | Linting | Catch type errors early |
-| prettier | Formatting | Consistent code style |
+| `vite dev` (built-in) | Dev server | One command runs both frontend HMR and server-side API routes on the same port. No proxy needed. |
+| eslint + typescript-eslint | Linting | SvelteKit scaffold includes this |
+| prettier + prettier-plugin-svelte | Formatting | Format `.svelte` files correctly |
 
 ## Installation
 
 ```bash
-# Root workspace
-pnpm init
-pnpm add -D typescript pnpm
+# Scaffold
+pnpm create svelte@latest .
+# → Choose: Skeleton project, TypeScript, ESLint, Prettier
 
-# Backend (packages/backend)
-pnpm add hono @hono/node-server better-sqlite3 zod
-pnpm add -D @types/better-sqlite3 tsx
+# Core server deps
+pnpm add better-sqlite3 zod
+pnpm add -D @types/better-sqlite3 @sveltejs/adapter-node
 
-# Frontend (packages/frontend)
-pnpm add svelte@5 @sveltejs/vite-plugin-svelte vite tailwindcss lucide-svelte date-fns
-pnpm add shadcn-svelte @tanstack/svelte-table
-pnpm add -D @sveltejs/vite-plugin-svelte
+# UI
+pnpm add -D tailwindcss @tailwindcss/vite
+pnpm dlx shadcn-svelte@latest init
+pnpm add lucide-svelte date-fns @tanstack/svelte-table
+```
 
-# Shared types
-pnpm add -D typescript
+## Project Structure
+
+```
+nanoclaw-dashboard/
+├── src/
+│   ├── routes/
+│   │   ├── +layout.svelte              # Dark-theme shell, sidebar nav
+│   │   ├── +page.svelte                # Overview / health summary
+│   │   ├── groups/
+│   │   │   ├── +page.svelte            # Groups list
+│   │   │   └── [id]/+page.svelte       # Group detail
+│   │   ├── sessions/
+│   │   │   ├── +page.svelte            # Sessions index
+│   │   │   └── [id]/+page.svelte       # Session detail + message log
+│   │   ├── approvals/
+│   │   │   └── +page.svelte            # Approvals queue
+│   │   └── api/
+│   │       ├── health/+server.ts
+│   │       ├── groups/+server.ts
+│   │       ├── groups/[id]/+server.ts
+│   │       ├── groups/[id]/members/+server.ts
+│   │       ├── groups/[id]/restart/+server.ts
+│   │       ├── sessions/+server.ts
+│   │       ├── sessions/[id]/+server.ts
+│   │       ├── sessions/[id]/messages/+server.ts
+│   │       └── approvals/+server.ts
+│   └── lib/
+│       ├── server/                     # Never bundled to client
+│       │   ├── db.ts                   # better-sqlite3 + queries
+│       │   └── ncl.ts                  # ncl execFile wrapper
+│       ├── components/                 # Svelte UI components
+│       └── types.ts                    # Shared types
+├── static/
+├── svelte.config.js                    # adapter-node here
+├── vite.config.ts
+├── Dockerfile
+├── docker-compose.yml
+└── package.json
+```
+
+## Key Patterns
+
+**SvelteKit API route:**
+```typescript
+// src/routes/api/groups/+server.ts
+import { json } from '@sveltejs/kit'
+import { getGroups } from '$lib/server/db'
+
+export async function GET() {
+  return json(getGroups())
+}
+```
+
+**Server-only DB module:**
+```typescript
+// src/lib/server/db.ts
+import Database from 'better-sqlite3'
+const db = new Database(process.env.NANOCLAW_DB!, { readonly: true })
+db.pragma('busy_timeout = 1000')
+```
+
+**svelte.config.js:**
+```javascript
+import adapter from '@sveltejs/adapter-node'
+export default { kit: { adapter: adapter() } }
 ```
 
 ## Alternatives Considered
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| Hono | Express | If team already knows Express and migration cost matters |
-| Hono | Fastify | If you need full plugin ecosystem; overkill for a thin API layer |
-| Svelte 5 | SvelteKit | If you need SSR, file-based routing, or form actions. For an SPA ops panel served from Hono, SvelteKit adds unnecessary complexity |
-| Svelte 5 | React + Vite | If team is React-native; React adds 40KB+ gzipped vs Svelte's ~5KB |
-| better-sqlite3 | node-sqlite3 | If you need async ops (not needed here — sync reads are faster and simpler) |
-| better-sqlite3 | Drizzle ORM | If you want type-safe query builder; adds complexity; direct SQL is fine for a read-heavy dashboard |
-| shadcn-svelte | Carbon Design | If you need IBM/enterprise design language |
-| shadcn-svelte | Skeleton UI | If Tailwind isn't already in the project |
-| pnpm workspaces | Turborepo | If you have many packages and need build caching; overkill here |
+| Recommended | Alternative | Why SvelteKit Wins |
+|-------------|-------------|-------------------|
+| SvelteKit | Hono + Svelte 5 SPA | Two build pipelines, Vite proxy config, monorepo wiring — all eliminated by SvelteKit. No capability difference for this use case. |
+| SvelteKit | Next.js | React ecosystem, not preferred here. |
+| better-sqlite3 | Drizzle ORM | Read-heavy dashboard doesn't need a query builder; direct SQL is simpler. |
+| shadcn-svelte | Skeleton UI / Carbon | shadcn-svelte has the best dark mode defaults and Svelte 5 support. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| Prisma | WAY too heavy for SQLite reads; generates its own DB client, adds schema drift risk for a read-only external DB | better-sqlite3 direct |
-| Next.js / Nuxt | Server-side rendering is unnecessary for a protected ops panel; adds build complexity | Svelte 5 + Vite SPA |
-| Express + many middleware | Bloated for this use case | Hono |
-| better-sqlite3 async wrapper | Async wrappers negate the main benefit; use sync API directly | better-sqlite3 sync |
-| ws (WebSocket) for v1 | Adds infrastructure complexity; polling every 5s is sufficient for an ops panel | setInterval + fetch |
-| Docker multi-stage without caching | Slow rebuilds during development | Proper layer ordering (deps before src) |
-
-## Stack Patterns
-
-**Backend serves frontend in production:**
-```typescript
-// Hono serves the built frontend
-app.use('/*', serveStatic({ root: '../frontend/dist' }))
-```
-
-**Dev mode (separate ports, proxied):**
-```
-Vite dev server: localhost:5173 (frontend with HMR)
-Hono dev server: localhost:3000 (backend API)
-Vite proxy: /api/* → localhost:3000
-```
-
-**SQLite WAL mode (critical for concurrent reads):**
-```typescript
-const db = new Database(dbPath, { readonly: true })
-db.pragma('journal_mode = WAL') // Already set by NanoClaw — just verify
-```
+| Separate Hono/Express backend | Creates two build pipelines and glue code | SvelteKit `+server.ts` routes |
+| Prisma | ORM overhead, schema ownership conflict with NanoClaw's DB | better-sqlite3 direct |
+| pnpm workspaces / monorepo | No longer needed — one SvelteKit project covers everything | Single `package.json` |
+| ws (WebSocket) | 5s polling is sufficient for a single-operator ops panel | `setInterval + fetch` |
+| `@sveltejs/adapter-auto` | Produces incorrect output for Docker; must use `adapter-node` explicitly | `@sveltejs/adapter-node` |
 
 ## Version Compatibility
 
 | Package A | Compatible With | Notes |
 |-----------|-----------------|-------|
-| Svelte 5.x | @sveltejs/vite-plugin-svelte 5.x | Must match major versions |
-| Tailwind 4.x | shadcn-svelte latest | Tailwind 4 uses CSS-native variables |
-| better-sqlite3 11.x | Node 20+ | Requires native compilation — include in Docker build |
-| Hono 4.x | @hono/node-server 1.x | Must match |
+| SvelteKit 2.x | @sveltejs/adapter-node 5.x | Must match |
+| Tailwind 4.x | shadcn-svelte latest | Tailwind 4 uses CSS-native variables (different from v3 config) |
+| better-sqlite3 11.x | Node 20+ | Native module — must compile inside Docker image |
 
 ## Sources
 
-- Hono official docs (hono.dev) — routing, Node.js adapter, static serving
-- Svelte 5 docs (svelte.dev) — runes, component API
-- better-sqlite3 README (github.com/WiseLibs/better-sqlite3) — WAL mode, readonly flag
-- shadcn-svelte docs — dark mode setup, Tailwind 4 compatibility
+- SvelteKit docs (kit.svelte.dev) — adapter-node, server routes, $lib/server
+- better-sqlite3 README — WAL mode, readonly flag
+- shadcn-svelte docs — Svelte 5 + Tailwind 4 setup
 - NanoClaw source (nanocoai/nanoclaw) — confirmed SQLite usage, no REST admin API
 
 ---
 *Stack research for: NanoClaw admin dashboard*
-*Researched: 2026-05-28*
+*Revised: 2026-05-28 — switched from Hono+SPA to SvelteKit*
