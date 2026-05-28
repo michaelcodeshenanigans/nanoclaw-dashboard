@@ -107,3 +107,20 @@ export interface Message {
   channel_type: string | null;
   thread_id: string | null;
 }
+
+export interface PendingApproval {
+  approval_id: string;
+  session_id: string | null;
+  request_id: string;
+  action: string;
+  payload: string;
+  created_at: string;
+  agent_group_id: string | null;
+  channel_type: string | null;
+  platform_id: string | null;
+  expires_at: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'expired';
+  title: string;
+  options_json: string;
+  group_name: string | null;
+}

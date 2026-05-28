@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message } from '$lib/types';
+import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval } from '$lib/types';
 
 const _dbPath = process.env.NANOCLAW_DB;
 if (!_dbPath) {
@@ -280,4 +280,35 @@ export function getSessionMessages(
     console.error('[getSessionMessages] error:', err);
     return [];
   }
+}
+
+const ALLOWED_APPROVAL_STATUSES = new Set(['pending', 'approved', 'rejected', 'expired']);
+
+export function getPendingApprovals(status = 'pending'): PendingApproval[] {
+  const baseQuery = `
+    SELECT
+      a.approval_id,
+      a.session_id,
+      a.request_id,
+      a.action,
+      a.payload,
+      a.created_at,
+      a.agent_group_id,
+      a.channel_type,
+      a.platform_id,
+      a.expires_at,
+      a.status,
+      a.title,
+      a.options_json,
+      g.name AS group_name
+    FROM pending_approvals a
+    LEFT JOIN agent_groups g ON g.id = a.agent_group_id
+  `;
+
+  if (status === 'all') {
+    return db.prepare(baseQuery + ' ORDER BY a.created_at DESC LIMIT 100').all() as PendingApproval[];
+  }
+
+  const safeStatus = ALLOWED_APPROVAL_STATUSES.has(status) ? status : 'pending';
+  return db.prepare(baseQuery + ' WHERE a.status = ? ORDER BY a.created_at DESC LIMIT 100').all(safeStatus) as PendingApproval[];
 }

@@ -5,8 +5,8 @@
 
 ## Status
 
-Current phase: Phase 5 — Group Admin (Restart & Member Management)
-Next action: Plan and execute Phase 5
+Current phase: Phase 6 — Pending Command Approvals Queue
+Next action: Plan and execute Phase 6
 
 ## Project Reference
 
@@ -26,7 +26,7 @@ v1.0 — Ops Panel Launch (6 phases, 29 requirements)
 | 2 | Groups Overview & System Health | Complete | 3 |
 | 3 | Group Detail, Members, Destinations & Sessions Index | Complete | 8 |
 | 4 | Per-Session Message Log Viewer | Complete | 5 |
-| 5 | Group Admin — Restart & Member Management | Not started | 3 |
+| 5 | Group Admin — Restart & Member Management | Complete | 3 |
 | 6 | Pending Command Approvals Queue | Not started | 4 |
 
 ## Recent Activity
@@ -38,6 +38,8 @@ v1.0 — Ops Panel Launch (6 phases, 29 requirements)
 - 2026-05-28: SSH deploy key configured — can now push directly
 - 2026-05-28: Phase 2 execution complete (groups list, health stats, pushed to main)
 - 2026-05-28: Phase 3 execution complete (group detail, sessions index/detail, 6 API endpoints, 3 UI pages, pushed)
+- 2026-05-28: Phase 4 execution complete (LRU session DB pool, message log API, messages UI page, pushed)
+- 2026-05-28: Phase 5 execution complete (fixed string ID types throughout, restart/add-member/remove-member API + UI, pushed)
 
 ## Confirmed Infrastructure (SSH-verified 2026-05-28)
 
