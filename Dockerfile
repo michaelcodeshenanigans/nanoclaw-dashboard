@@ -2,7 +2,7 @@
 FROM node:20-alpine AS builder
 RUN apk add --no-cache python3 make g++
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g pnpm@10
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
@@ -10,12 +10,9 @@ RUN pnpm build
 
 # ---- Runtime stage ----
 FROM node:20-alpine AS runtime
-RUN apk add --no-cache python3 make g++
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@latest --activate
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prod \
-  && apk del python3 make g++
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/build ./build
 EXPOSE 3000
 ENV NODE_ENV=production

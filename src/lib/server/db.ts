@@ -1,26 +1,36 @@
 import Database from 'better-sqlite3';
 import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval } from '$lib/types';
 
-const _dbPath = process.env.NANOCLAW_DB;
-if (!_dbPath) {
-  throw new Error(
-    'NANOCLAW_DB environment variable is not set. ' +
-    'Set it to the path of the NanoClaw SQLite database (e.g. /nanoclaw-data/v2.db).'
-  );
-}
-const dbPath: string = _dbPath;
+type BetterDB = InstanceType<typeof Database>;
 
-export const db = new Database(dbPath, { readonly: true });
-db.pragma('busy_timeout = 1000');
+let _db: BetterDB | null = null;
+let _dbPath: string | null = null;
+
+function getDb(): BetterDB {
+  if (!_db) {
+    const path = process.env.NANOCLAW_DB;
+    if (!path) throw new Error('NANOCLAW_DB environment variable is not set.');
+    _dbPath = path;
+    _db = new Database(path, { readonly: true });
+    _db.pragma('busy_timeout = 1000');
+  }
+  return _db;
+}
+
+export const db = new Proxy({} as BetterDB, {
+  get(_, prop) {
+    return (getDb() as unknown as Record<string | symbol, unknown>)[prop];
+  }
+});
 
 export function checkDbHealth(): DbStatus {
   try {
     db.prepare('SELECT 1').get();
-    return { ok: true, path: dbPath };
+    return { ok: true, path: _dbPath! };
   } catch (err) {
     return {
       ok: false,
-      path: dbPath,
+      path: _dbPath!,
       error: err instanceof Error ? err.message : String(err)
     };
   }
