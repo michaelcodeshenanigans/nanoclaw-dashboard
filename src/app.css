@@ -29,6 +29,9 @@
   * {
     @apply border-[hsl(var(--border))];
   }
+  html, body {
+    overflow-x: hidden;
+  }
   body {
     @apply bg-[hsl(var(--background))] text-[hsl(var(--foreground))];
     font-feature-settings: "rlig" 1, "calt" 1;
