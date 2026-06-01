@@ -101,7 +101,7 @@
           Group
         </span>
         <select
-          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))]"
+          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 min-h-[44px] sm:min-h-0 text-sm text-[hsl(var(--foreground))]"
           bind:value={groupId}
         >
           <option value={null}>All groups</option>
@@ -116,7 +116,7 @@
           Status
         </span>
         <select
-          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))]"
+          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 min-h-[44px] sm:min-h-0 text-sm text-[hsl(var(--foreground))]"
           bind:value={containerStatus}
         >
           <option value={null}>All statuses</option>
@@ -131,7 +131,7 @@
           Time
         </span>
         <select
-          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))]"
+          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 min-h-[44px] sm:min-h-0 text-sm text-[hsl(var(--foreground))]"
           bind:value={timeRange}
         >
           <option value={null}>All time</option>
@@ -154,6 +154,7 @@
     {:else if !sessions.data || sessions.data.length === 0}
       <p class="text-sm text-[hsl(var(--muted-foreground))]">No sessions match these filters.</p>
     {:else}
+      <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
           <tr
@@ -195,6 +196,7 @@
           {/each}
         </tbody>
       </table>
+      </div>
     {/if}
   </section>
 </div>

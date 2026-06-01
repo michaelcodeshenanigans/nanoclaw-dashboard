@@ -55,6 +55,7 @@
     </div>
   {:else}
     <div class="rounded-md border border-[hsl(var(--border))] overflow-hidden">
+      <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="bg-[hsl(var(--muted))] border-b border-[hsl(var(--border))]">
           <tr>
@@ -120,6 +121,7 @@
           {/each}
         </tbody>
       </table>
+      </div>
     </div>
     <p class="text-xs text-[hsl(var(--muted-foreground))]">
       {tasks.data.length} task{tasks.data.length !== 1 ? 's' : ''} across all groups. One row per series — shows the live pending/paused occurrence.

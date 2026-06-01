@@ -99,7 +99,7 @@
           type="text"
           placeholder="Filter by content…"
           bind:value={search}
-          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
+          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 min-h-[44px] sm:min-h-0 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
         />
       </label>
 
@@ -109,7 +109,7 @@
         </span>
         <select
           bind:value={kind}
-          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))]"
+          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 min-h-[44px] sm:min-h-0 text-sm text-[hsl(var(--foreground))]"
         >
           <option value="">All kinds</option>
           <option value="message">message</option>
@@ -125,7 +125,7 @@
         </span>
         <select
           bind:value={timeRange}
-          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))]"
+          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 min-h-[44px] sm:min-h-0 text-sm text-[hsl(var(--foreground))]"
         >
           <option value="">All time</option>
           <option value="1h">Last hour</option>

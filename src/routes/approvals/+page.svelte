@@ -43,7 +43,7 @@
   <div class="max-w-6xl mx-auto space-y-6">
 
     <!-- Header -->
-    <div class="flex items-start justify-between">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <h1 class="text-2xl font-bold text-[hsl(var(--foreground))]">Approval Queue</h1>
         <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
@@ -57,7 +57,7 @@
       <!-- Status filter -->
       <select
         bind:value={statusFilter}
-        class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))]"
+        class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 min-h-[44px] sm:min-h-0 text-sm text-[hsl(var(--foreground))]"
       >
         <option value="pending">Pending</option>
         <option value="approved">Approved</option>

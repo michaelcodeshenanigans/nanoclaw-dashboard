@@ -7,8 +7,8 @@
 
 Phase: 9 — Mobile Polish — Tables, Filters, Touch Targets
 Plan: —
-Status: Planning
-Last activity: 2026-06-01 — Phase 8 complete (responsive nav + layout foundation)
+Status: Complete
+Last activity: 2026-06-01 — Phase 9 complete (tables scroll, filters stack, 44px touch targets)
 
 ## Milestone
 
@@ -26,7 +26,7 @@ v1.1 — Mobile UX (responsive layout, mobile nav, touch targets)
 | 6 | Pending Command Approvals Queue | Complete | 4 |
 | 7 | Dropped Messages + Scheduled Tasks (informal, outside GSD) | Complete | — |
 | 8 | Responsive Nav & Layout Foundation | Complete | 3 |
-| 9 | Mobile Polish — Tables, Filters, Touch Targets | Planning | 3 |
+| 9 | Mobile Polish — Tables, Filters, Touch Targets | Complete | 3 |
 
 ## Project Reference
 

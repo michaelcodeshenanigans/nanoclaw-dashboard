@@ -59,6 +59,7 @@
         </div>
       {:else}
         <div class="rounded-lg border border-[hsl(var(--border))] overflow-hidden">
+          <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-[hsl(var(--border))] bg-[hsl(var(--muted))]">
@@ -95,6 +96,7 @@
               {/each}
             </tbody>
           </table>
+          </div>
         </div>
       {/if}
     {/if}

@@ -38,7 +38,7 @@
     </div>
     <button
       onclick={() => sidebarOpen = true}
-      class="flex items-center justify-center w-10 h-10 rounded-md hover:bg-[hsl(var(--accent))] text-[hsl(var(--foreground))]"
+      class="flex items-center justify-center w-11 h-11 rounded-md hover:bg-[hsl(var(--accent))] text-[hsl(var(--foreground))]"
       aria-label="Open navigation"
     >
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -69,7 +69,7 @@
         <a
           href={item.href}
           onclick={closeDrawer}
-          class="flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
+          class="flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors
             {isActive(item.href)
               ? 'bg-[hsl(var(--accent))] text-[hsl(var(--foreground))] font-medium'
               : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))]'}"

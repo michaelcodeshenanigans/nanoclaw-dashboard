@@ -69,7 +69,7 @@
   <div class="flex flex-wrap gap-3">
     <select
       bind:value={groupFilter}
-      class="px-3 py-1.5 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--muted))] text-sm focus:outline-none"
+      class="px-3 py-1.5 min-h-[44px] sm:min-h-0 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--muted))] text-sm focus:outline-none"
     >
       <option value="">All groups</option>
       {#each groups as g}
@@ -79,7 +79,7 @@
 
     <select
       bind:value={channelFilter}
-      class="px-3 py-1.5 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--muted))] text-sm focus:outline-none"
+      class="px-3 py-1.5 min-h-[44px] sm:min-h-0 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--muted))] text-sm focus:outline-none"
     >
       <option value="">All channels</option>
       {#each channelTypes as ct}
@@ -100,6 +100,7 @@
     </div>
   {:else}
     <div class="rounded-md border border-[hsl(var(--border))] overflow-hidden">
+      <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="bg-[hsl(var(--muted))] border-b border-[hsl(var(--border))]">
           <tr>
@@ -135,6 +136,7 @@
           {/each}
         </tbody>
       </table>
+      </div>
     </div>
     <p class="text-xs text-[hsl(var(--muted-foreground))]">
       Showing {senders.data.length} sender{senders.data.length !== 1 ? 's' : ''}.
