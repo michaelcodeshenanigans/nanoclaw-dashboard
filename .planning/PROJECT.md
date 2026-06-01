@@ -8,6 +8,16 @@ A dark-theme web ops panel for a self-hosted NanoClaw installation, giving the o
 
 An operator can see what every agent group is doing right now and take action (restart, approve, manage members) without touching the command line.
 
+## Current Milestone: v1.1 Mobile UX
+
+**Goal:** Make every existing dashboard page usable on a phone-sized viewport without touching any data/API layer.
+
+**Target features:**
+- Responsive layout — all pages reflow from desktop down to ~375px
+- Mobile nav — collapsible sidebar (hamburger toggle) replacing the fixed 220px sidebar
+- Table handling — horizontal scroll or condensed card views on small screens
+- Touch-friendly tap targets — minimum 44px hit areas on interactive elements
+
 ## Requirements
 
 ### Validated
@@ -34,7 +44,7 @@ An operator can see what every agent group is doing right now and take action (r
 - Multi-install support — one NanoClaw instance only; no multi-server view
 - User management beyond member add/remove — no full identity admin
 - Agent code editing — view-only for configs; changes go through ncl/git
-- Mobile-first design — desktop ops panel, mobile-responsive is nice-to-have not required
+- ~~Mobile-first design — desktop ops panel, mobile-responsive is nice-to-have not required~~ → Promoted to v1.1
 - Real-time WebSocket push for every field — polling is fine for v1
 
 ## Context
@@ -91,7 +101,7 @@ An operator can see what every agent group is doing right now and take action (r
 | Single Docker container | SvelteKit adapter-node serves both pages and API; one container, one Traefik entry | — Pending |
 
 ---
-*Last updated: 2026-05-28 after initialization*
+*Last updated: 2026-06-01 — Milestone v1.1 started*
 
 ## Evolution
 

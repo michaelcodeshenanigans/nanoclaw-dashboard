@@ -52,6 +52,17 @@
 - [ ] **HLTH-01**: Overview page shows system health summary: active session count, container statuses, recent error count
 - [ ] **HLTH-02**: Each agent group in the groups list shows a live container status badge (running, stopped, error)
 
+## v1.1 Requirements — Mobile UX
+
+### Mobile Layout
+
+- [ ] **MOB-01**: Operator can collapse the navigation sidebar on mobile (≤768px) via a hamburger button visible in the top bar
+- [ ] **MOB-02**: When the mobile nav drawer is open, tapping the backdrop or a nav link closes it
+- [ ] **MOB-03**: All existing pages render without horizontal overflow on a 375px-wide viewport
+- [ ] **MOB-04**: Data tables (groups, sessions, approvals, dropped, tasks) scroll horizontally within their containers on small screens
+- [ ] **MOB-05**: Filter controls on sessions, messages, approvals, and dropped pages wrap vertically on mobile instead of overflowing
+- [ ] **MOB-06**: All interactive elements (nav links, buttons, table row actions) have a minimum 44×44px touch target on mobile
+
 ## v2 Requirements
 
 ### Enhanced Monitoring
@@ -76,7 +87,7 @@
 | User management / auth UI | Authelia handles all authentication; duplicating it adds security surface area |
 | Agent code editor (CLAUDE.md editing) | Security risk — AI behavior editing should go through git, not a web form |
 | Light/dark theme toggle | Dark is the stated preference; a toggle doubles CSS work with no return |
-| Mobile-first design | Desktop ops panel; mobile-responsive is a stretch goal, not a v1 requirement |
+| ~~Mobile-first design~~ | Promoted to v1.1 milestone |
 | Notification system (email/Slack alerts) | NanoClaw's agents already handle notifications; dashboard is active monitoring only |
 | Plugin/extension system | Premature abstraction — build core first |
 | Backup / restore functionality | Out of scope; handled at infrastructure level |
@@ -116,10 +127,18 @@
 | HLTH-02 | Phase 2 | Pending |
 
 **Coverage:**
-- v1 requirements: 29 total
-- Mapped to phases: 29
-- Unmapped: 0 ✓
+- v1 requirements: 29 total — all mapped ✓
+- v1.1 requirements: 6 total — to be mapped by roadmapper
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| MOB-01 | Phase 8 | Pending |
+| MOB-02 | Phase 8 | Pending |
+| MOB-03 | Phase 8 | Pending |
+| MOB-04 | Phase 9 | Pending |
+| MOB-05 | Phase 9 | Pending |
+| MOB-06 | Phase 9 | Pending |
 
 ---
 *Requirements defined: 2026-05-28*
-*Last updated: 2026-05-28 after initial definition*
+*Last updated: 2026-06-01 — v1.1 Mobile UX requirements added*
