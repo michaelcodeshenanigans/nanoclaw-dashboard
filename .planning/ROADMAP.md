@@ -104,3 +104,75 @@ Phase 6 (Approvals)
 
 ---
 *Roadmap created: 2026-05-28*
+
+---
+
+## Milestone v1.1 Phases
+
+**Milestone:** v1.1 — Mobile UX
+**Created:** 2026-06-01
+**Scope:** Make every existing dashboard page usable on a phone-sized viewport without touching any data/API layer.
+
+### Overview
+
+v1.0 shipped a desktop-optimized ops panel through Phase 6, plus an informal Phase 7 (Dropped Messages + Scheduled Tasks). v1.1 is a focused two-phase responsive pass over the existing surface — no new data, no new pages, no new dependencies. Just Tailwind v4 responsive utilities and a single Svelte 5 `$state` rune for the mobile drawer.
+
+**Sequencing rationale:**
+- Phase 8 first — the structural change (sidebar → hamburger drawer, layout reflow at 375px) is the hardest and unblocks observable mobile usage of every page.
+- Phase 9 second — once the shell is mobile-usable, polish the in-page chrome: table scroll containers, filter stacking, and tap-target sizing.
+
+### Phase 8: Responsive Nav & Layout Foundation
+**Goal:** Operator can navigate the dashboard on a 375px-wide phone — the fixed sidebar becomes a hamburger-toggled drawer, and every existing page reflows without horizontal overflow.
+**Mode:** mvp
+**Depends on:** Phase 7 (existing desktop layout)
+**Requirements:** MOB-01, MOB-02, MOB-03
+**Success Criteria:**
+1. On a viewport ≤768px wide, the fixed 220px sidebar is hidden and a hamburger button in the top bar is the only nav entry point.
+2. Tapping the hamburger opens a drawer with the same nav links as desktop; tapping the backdrop or any nav link inside the drawer closes it.
+3. Every existing page (overview, groups, group detail, sessions, session detail, messages, approvals, dropped, tasks) renders at 375px width with zero horizontal page-level scroll — verified by `document.documentElement.scrollWidth === window.innerWidth` in devtools.
+4. The desktop layout (≥769px) is visually unchanged — the sidebar stays fixed, the hamburger is hidden, no regressions in spacing or navigation behavior.
+**Plans:** TBD
+**UI hint**: yes
+
+### Phase 9: Mobile Polish — Tables, Filters, Touch Targets
+**Goal:** Operator can read every data table, use every filter, and tap every action on a phone without zooming or frustration.
+**Mode:** mvp
+**Depends on:** Phase 8
+**Requirements:** MOB-04, MOB-05, MOB-06
+**Success Criteria:**
+1. Every data table (groups, sessions, approvals, dropped, tasks) sits inside a horizontally scrollable container on ≤768px viewports — the page itself does not scroll horizontally, but the table can.
+2. Filter control rows on `/sessions`, `/messages`, `/approvals`, and `/dropped` wrap or stack vertically on ≤768px so no control overflows or gets clipped.
+3. Every interactive element — nav links (drawer + desktop), buttons, table row actions, filter controls — has a minimum 44×44px touch target on mobile, verified by computed style on representative elements.
+4. The desktop layout (≥769px) keeps its denser table rows, inline filter row, and existing button sizes — mobile sizing is additive via responsive classes, not a global change.
+**Plans:** TBD
+**UI hint**: yes
+
+### v1.1 Requirement Coverage
+
+- v1.1 requirements: 6 total
+- Mapped: 6 / 6 ✓
+- Unmapped: 0
+
+| Requirement | Phase |
+|-------------|-------|
+| MOB-01 | Phase 8 |
+| MOB-02 | Phase 8 |
+| MOB-03 | Phase 8 |
+| MOB-04 | Phase 9 |
+| MOB-05 | Phase 9 |
+| MOB-06 | Phase 9 |
+
+### v1.1 Phase Dependencies
+
+```
+Phase 7 (existing — desktop layout, Dropped + Tasks)
+        |
+        v
+Phase 8 (Responsive nav + layout foundation)
+        |
+        v
+Phase 9 (Tables, filters, touch targets)
+```
+
+---
+*v1.1 roadmap appended: 2026-06-01*

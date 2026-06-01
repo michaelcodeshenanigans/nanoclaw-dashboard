@@ -5,10 +5,10 @@
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 8 — Responsive Nav & Layout Foundation
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-01 — Milestone v1.1 started
+Status: Planning
+Last activity: 2026-06-01 — Milestone v1.1 roadmap created; Phase 8 ready for `/gsd-plan-phase 8`
 
 ## Milestone
 
@@ -25,6 +25,8 @@ v1.1 — Mobile UX (responsive layout, mobile nav, touch targets)
 | 5 | Group Admin — Restart & Member Management | Complete | 3 |
 | 6 | Pending Command Approvals Queue | Complete | 4 |
 | 7 | Dropped Messages + Scheduled Tasks (informal, outside GSD) | Complete | — |
+| 8 | Responsive Nav & Layout Foundation | Planning | 3 |
+| 9 | Mobile Polish — Tables, Filters, Touch Targets | Not started | 3 |
 
 ## Project Reference
 
