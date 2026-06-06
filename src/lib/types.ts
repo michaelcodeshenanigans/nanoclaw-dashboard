@@ -134,6 +134,17 @@ export interface ScheduledTask {
   session_id: string;
 }
 
+export interface LlmCall {
+  id: number;
+  turn_seq: number;
+  timestamp: string;
+  model: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  thinking_text: string | null;
+  duration_ms: number | null;
+}
+
 export interface PendingApproval {
   approval_id: string;
   session_id: string | null;

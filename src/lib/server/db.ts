@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask } from '$lib/types';
+import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall } from '$lib/types';
 
 type BetterDB = InstanceType<typeof Database>;
 
@@ -362,6 +362,25 @@ export function getUnregisteredSenders(filters: DroppedFilters = {}): Unregister
     ORDER BY u.last_seen DESC
     LIMIT 200
   `).all(...params) as UnregisteredSender[];
+}
+
+export function getLlmCalls(sessionId: string): LlmCall[] {
+  const session = db.prepare(
+    'SELECT id, agent_group_id FROM sessions WHERE id = ?'
+  ).get(sessionId) as { id: string; agent_group_id: string } | undefined;
+
+  if (!session) return [];
+
+  const { outbound } = getSessionDbPair(session.agent_group_id, session.id);
+  if (!outbound) return [];
+
+  try {
+    return outbound.prepare(
+      'SELECT * FROM llm_calls ORDER BY turn_seq ASC, id ASC'
+    ).all() as LlmCall[];
+  } catch {
+    return [];
+  }
 }
 
 export function getScheduledTasks(): ScheduledTask[] {

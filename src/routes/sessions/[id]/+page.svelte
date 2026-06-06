@@ -183,8 +183,14 @@
     {/if}
   </section>
 
-  <!-- Messages link -->
-  <div class="flex justify-end">
+  <!-- Action links -->
+  <div class="flex justify-end gap-3">
+    <a
+      href={`/sessions/${id}/llm-calls`}
+      class="text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+    >
+      LLM Calls →
+    </a>
     <a
       href={`/sessions/${id}/messages`}
       class="rounded-md bg-[hsl(var(--accent))] px-4 py-2 text-sm font-medium text-[hsl(var(--accent-foreground))] hover:opacity-90 transition-opacity"
