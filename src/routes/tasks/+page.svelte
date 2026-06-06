@@ -5,6 +5,7 @@
 
   let tasks = $state<PollState<ScheduledTask[]>>({ data: null, loading: true, error: null, lastUpdated: null });
   let expandedScript = $state<string | null>(null);
+  let expandedPrompt = $state<string | null>(null);
 
   $effect(() => {
     const p = createPoller<ScheduledTask[]>(
@@ -25,6 +26,10 @@
 
   function toggleScript(id: string) {
     expandedScript = expandedScript === id ? null : id;
+  }
+
+  function togglePrompt(id: string) {
+    expandedPrompt = expandedPrompt === id ? null : id;
   }
 </script>
 
@@ -71,9 +76,17 @@
           {#each tasks.data as t}
             <tr class="hover:bg-[hsl(var(--muted)/0.5)] transition-colors">
               <td class="px-4 py-3 font-medium">{t.group_name}</td>
-              <td class="px-4 py-3 max-w-xs truncate overflow-hidden">
-                <p class="truncate text-[hsl(var(--foreground))]" title={t.prompt}>{t.prompt}</p>
-                <p class="font-mono text-xs text-[hsl(var(--muted-foreground))] mt-0.5">{t.id.slice(0, 8)}…</p>
+              <td class="px-4 py-3">
+                <div class="max-w-sm overflow-hidden">
+                  <p class="truncate text-[hsl(var(--foreground))]" title={t.prompt}>{t.prompt}</p>
+                  <div class="flex items-center gap-2 mt-0.5">
+                    <p class="font-mono text-xs text-[hsl(var(--muted-foreground))]">{t.id.slice(0, 8)}…</p>
+                    <button
+                      onclick={() => togglePrompt(t.id)}
+                      class="text-xs text-[hsl(var(--muted-foreground))] underline hover:text-[hsl(var(--foreground))] transition-colors"
+                    >{expandedPrompt === t.id ? 'hide' : 'expand'}</button>
+                  </div>
+                </div>
               </td>
               <td class="px-4 py-3">
                 {#if t.recurrence}
@@ -111,6 +124,13 @@
                 {/if}
               </td>
             </tr>
+            {#if expandedPrompt === t.id}
+              <tr>
+                <td colspan="6" class="px-4 pb-4">
+                  <pre class="text-xs bg-[hsl(var(--muted))] border border-[hsl(var(--border))] rounded p-3 overflow-x-auto whitespace-pre-wrap break-words max-h-48 overflow-y-auto">{t.prompt}</pre>
+                </td>
+              </tr>
+            {/if}
             {#if expandedScript === t.id && t.script}
               <tr>
                 <td colspan="6" class="px-4 pb-4">
