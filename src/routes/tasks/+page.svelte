@@ -71,7 +71,7 @@
           {#each tasks.data as t}
             <tr class="hover:bg-[hsl(var(--muted)/0.5)] transition-colors">
               <td class="px-4 py-3 font-medium">{t.group_name}</td>
-              <td class="px-4 py-3 max-w-xs">
+              <td class="px-4 py-3 max-w-xs truncate overflow-hidden">
                 <p class="truncate text-[hsl(var(--foreground))]" title={t.prompt}>{t.prompt}</p>
                 <p class="font-mono text-xs text-[hsl(var(--muted-foreground))] mt-0.5">{t.id.slice(0, 8)}…</p>
               </td>
