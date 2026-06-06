@@ -8,15 +8,14 @@ A dark-theme web ops panel for a self-hosted NanoClaw installation, giving the o
 
 An operator can see what every agent group is doing right now and take action (restart, approve, manage members) without touching the command line.
 
-## Current Milestone: v1.1 Mobile UX
+## Current Milestone: v1.2 LLM Call Observability
 
-**Goal:** Make every existing dashboard page usable on a phone-sized viewport without touching any data/API layer.
+**Goal:** Per-session LLM call logging (thinking blocks, token counts, duration) — agent-runner writes to outbound.db, dashboard reads and displays per session.
 
 **Target features:**
-- Responsive layout — all pages reflow from desktop down to ~375px
-- Mobile nav — collapsible sidebar (hamburger toggle) replacing the fixed 220px sidebar
-- Table handling — horizontal scroll or condensed card views on small screens
-- Touch-friendly tap targets — minimum 44px hit areas on interactive elements
+- NanoClaw core: `llm_calls` table in outbound.db (Bun/bun:sqlite), captured in poll-loop event handler
+- Dashboard: `/sessions/[id]/llm-calls` page — table with expandable thinking accordion
+- Graceful degradation when table doesn't exist (old sessions / pre-10A containers)
 
 ## Requirements
 

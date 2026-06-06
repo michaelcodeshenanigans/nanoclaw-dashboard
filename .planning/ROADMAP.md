@@ -176,3 +176,78 @@ Phase 9 (Tables, filters, touch targets)
 
 ---
 *v1.1 roadmap appended: 2026-06-01*
+
+---
+
+## Milestone v1.2 Phases
+
+**Milestone:** v1.2 — LLM Call Observability
+**Created:** 2026-06-06
+**Scope:** Per-session LLM call logging (thinking blocks, token counts, duration) stored in outbound.db by the agent-runner and surfaced in the dashboard as a read-only observability page.
+
+### Overview
+
+v1.2 spans two codebases: the NanoClaw agent-runner (Bun, in `nanoclaw-v2`) and the dashboard (SvelteKit, in `nanoclaw-dashboard`). Phase 10A is a **prerequisite** for Phase 10B — the dashboard page has no data to read until the agent-runner writes the `llm_calls` table.
+
+**Design decisions locked:**
+- Storage: `llm_calls` table in `outbound.db` (co-located with session, no new DB file)
+- Scope: per-session only — no cross-session aggregation
+- Display: expandable accordion inline in the LLM calls table (no separate drill-down page)
+- Agent-runner uses `bun:sqlite` (not Node's better-sqlite3)
+
+**Sequencing rationale:**
+- Phase 10A first — agent-runner must write `llm_calls` rows before the dashboard can read them. No dashboard work is meaningful without real data.
+- Phase 10B second — pure read-side dashboard work; can be developed against a test DB with manually inserted rows if 10A isn't deployed yet.
+
+### Phase 10A: NanoClaw Core — LLM Call Capture
+**Goal:** The agent-runner captures per-turn thinking blocks and token usage into an `llm_calls` table in each session's `outbound.db` — so the dashboard can read it without any new infrastructure.
+**Codebase:** `nanoclaw-v2` (not the dashboard repo) — `/home/michael/workspace/nanoclaw-v2/container/agent-runner/src/`
+**Mode:** mvp
+**Requirements:** LLM-01, LLM-02
+**Success Criteria:**
+1. After the agent-runner image is rebuilt and deployed, every completed agent turn writes one row to `outbound.db`'s `llm_calls` table with a non-null `timestamp`, `turn_seq`, and either `input_tokens > 0` or `thinking_text IS NOT NULL` (or both).
+2. A session with 3 turns produces exactly 3 rows in `llm_calls` — no duplicates, no missing turns.
+3. The `llm_calls` table is created idempotently (`CREATE TABLE IF NOT EXISTS`) so existing outbound.db files with no `llm_calls` table are upgraded gracefully on first run.
+4. Agent-runner processes with no thinking blocks (thinking disabled) still write rows with `thinking_text = NULL` — the table is always populated regardless of thinking mode.
+**Plans:** TBD
+**Note:** Phase 10A changes go to the `nanoclaw-v2` repo on the host. Executor must relay code via SSH or bundle for Yoni to apply.
+
+### Phase 10B: Dashboard — LLM Call Viewer
+**Goal:** Operator can open a per-session LLM calls page from the session detail page, see a table of turns with token counts and thinking previews, and expand any row to read the full thinking text.
+**Codebase:** `nanoclaw-dashboard`
+**Mode:** mvp
+**Depends on:** Phase 10A (outbound.db must have `llm_calls` table)
+**Requirements:** LLM-03, LLM-04
+**Success Criteria:**
+1. Session detail page (`/sessions/[id]`) has a "View LLM Calls" link that navigates to `/sessions/[id]/llm-calls`.
+2. The LLM calls page shows a table with one row per turn: turn number, timestamp, model, input tokens, output tokens, duration, and a truncated thinking preview (max 80 chars) or "—" if no thinking.
+3. Clicking an expand button on any row with thinking text reveals the full thinking block in a `<pre>` element below that row.
+4. If no `llm_calls` table exists (Phase 10A not yet deployed), the page shows "No LLM call data recorded yet" without crashing.
+**Plans:** TBD
+
+### v1.2 Requirement Coverage
+
+- v1.2 requirements: 4 total
+- Mapped: 4 / 4 ✓
+
+| Requirement | Phase |
+|-------------|-------|
+| LLM-01 | Phase 10A |
+| LLM-02 | Phase 10A |
+| LLM-03 | Phase 10B |
+| LLM-04 | Phase 10B |
+
+### v1.2 Phase Dependencies
+
+```
+Phase 9 (Mobile Polish — complete)
+        |
+        v
+Phase 10A (NanoClaw Core — LLM capture)   <-- prerequisite: writes the data
+        |
+        v
+Phase 10B (Dashboard — LLM Call Viewer)   <-- reads from outbound.db
+```
+
+---
+*v1.2 roadmap appended: 2026-06-06*

@@ -63,6 +63,18 @@
 - [ ] **MOB-05**: Filter controls on sessions, messages, approvals, and dropped pages wrap vertically on mobile instead of overflowing
 - [ ] **MOB-06**: All interactive elements (nav links, buttons, table row actions) have a minimum 44×44px touch target on mobile
 
+## v1.2 Requirements — LLM Call Observability
+
+### NanoClaw Core (agent-runner)
+
+- [ ] **LLM-01**: NanoClaw agent-runner creates an `llm_calls` table in `outbound.db` on startup — columns: `id`, `turn_seq`, `timestamp`, `model`, `input_tokens`, `output_tokens`, `thinking_text`, `duration_ms`
+- [ ] **LLM-02**: After each agent turn completes, the agent-runner writes one row to `llm_calls` capturing the full thinking block text (if present), token usage from the result event, and wall-clock duration for that turn
+
+### Dashboard (read-only)
+
+- [ ] **LLM-03**: Operator can open a per-session LLM calls page showing a table of turns with model, token counts (in/out), duration, and a truncated thinking preview — accessible via a link from the session detail page
+- [ ] **LLM-04**: Operator can expand any LLM call row inline to read the full thinking block text
+
 ## v2 Requirements
 
 ### Enhanced Monitoring
@@ -138,6 +150,13 @@
 | MOB-04 | Phase 9 | Pending |
 | MOB-05 | Phase 9 | Pending |
 | MOB-06 | Phase 9 | Pending |
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| LLM-01 | Phase 10A | Pending |
+| LLM-02 | Phase 10A | Pending |
+| LLM-03 | Phase 10B | Pending |
+| LLM-04 | Phase 10B | Pending |
 
 ---
 *Requirements defined: 2026-05-28*

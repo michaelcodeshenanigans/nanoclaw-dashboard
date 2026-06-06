@@ -1,18 +1,18 @@
 # Project State
 
 **Project:** NanoClaw Dashboard
-**Updated:** 2026-06-01
+**Updated:** 2026-06-06
 
 ## Current Position
 
-Phase: 9 — Mobile Polish — Tables, Filters, Touch Targets
+Phase: 10A — NanoClaw Core: LLM Call Capture
 Plan: —
-Status: Complete
-Last activity: 2026-06-01 — Phase 9 complete (tables scroll, filters stack, 44px touch targets)
+Status: Planning
+Last activity: 2026-06-06 — Milestone v1.2 roadmap created; Phase 10A ready for execution
 
 ## Milestone
 
-v1.1 — Mobile UX (responsive layout, mobile nav, touch targets)
+v1.2 — LLM Call Observability (per-session LLM logs: thinking blocks, token counts, duration)
 
 ## Phase Index
 
@@ -27,6 +27,8 @@ v1.1 — Mobile UX (responsive layout, mobile nav, touch targets)
 | 7 | Dropped Messages + Scheduled Tasks (informal, outside GSD) | Complete | — |
 | 8 | Responsive Nav & Layout Foundation | Complete | 3 |
 | 9 | Mobile Polish — Tables, Filters, Touch Targets | Complete | 3 |
+| 10A | NanoClaw Core — LLM Call Capture | Planning | 2 |
+| 10B | Dashboard — LLM Call Viewer | Not started | 2 |
 
 ## Project Reference
 
