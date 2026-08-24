@@ -213,4 +213,28 @@
       </a>
     </div>
   </div>
+
+  <!-- Send message (stubbed — pending NanoClaw core support) -->
+  <section class="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 text-[hsl(var(--card-foreground))] opacity-60">
+    <h2 class="mb-1 text-base font-semibold">Send Message</h2>
+    <p class="mb-4 text-xs text-[hsl(var(--muted-foreground))]">
+      Pending NanoClaw core support — message injection requires a write-capable verb not yet in ncl.
+    </p>
+    <div class="flex flex-col gap-3">
+      <textarea
+        disabled
+        placeholder="Type a message or instruction for this session…"
+        rows="3"
+        class="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--muted))] px-3 py-2 text-sm text-[hsl(var(--muted-foreground))] cursor-not-allowed resize-none"
+      ></textarea>
+      <div class="flex justify-end">
+        <button
+          disabled
+          class="rounded-md bg-[hsl(var(--accent))] px-4 py-2 text-sm font-medium text-[hsl(var(--accent-foreground))] opacity-40 cursor-not-allowed"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  </section>
 </div>

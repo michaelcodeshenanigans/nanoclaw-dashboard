@@ -134,6 +134,16 @@ export interface ScheduledTask {
   session_id: string;
 }
 
+export interface FailedTaskSummary {
+  series_id: string;
+  agent_group_id: string;
+  group_name: string;
+  session_id: string;
+  prompt: string;
+  last_failure: string | null;
+  failure_count: number;
+}
+
 export interface TaskRun {
   seq: number;
   status: 'completed' | 'failed' | 'processing';

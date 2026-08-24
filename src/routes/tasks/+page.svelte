@@ -1,7 +1,9 @@
 <script lang="ts">
   import { createPoller, type PollState } from '$lib/poll';
-  import type { ScheduledTask } from '$lib/types';
+  import type { ScheduledTask, FailedTaskSummary } from '$lib/types';
   import { formatDistanceToNow, format } from 'date-fns';
+
+  let activeTab = $state<'scheduled' | 'failures'>('scheduled');
 
   let tasks = $state<PollState<ScheduledTask[]>>({ data: null, loading: true, error: null, lastUpdated: null });
   let expandedScript = $state<string | null>(null);
@@ -26,11 +28,22 @@
     }
   }
 
+  let failures = $state<PollState<FailedTaskSummary[]>>({ data: null, loading: true, error: null, lastUpdated: null });
+
   $effect(() => {
     const p = createPoller<ScheduledTask[]>(
       signal => fetch('/api/tasks', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
       15000,
       s => { tasks = s; }
+    );
+    return () => p.stop();
+  });
+
+  $effect(() => {
+    const p = createPoller<FailedTaskSummary[]>(
+      signal => fetch('/api/tasks/failures', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+      30000,
+      s => { failures = s; }
     );
     return () => p.stop();
   });
@@ -52,20 +65,44 @@
   }
 </script>
 
-<svelte:head><title>Scheduled Tasks — NanoClaw</title></svelte:head>
+<svelte:head><title>Tasks — NanoClaw</title></svelte:head>
 
 <div class="p-6 space-y-6">
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-semibold">Scheduled Tasks</h1>
+      <h1 class="text-2xl font-semibold">Tasks</h1>
       <p class="text-sm text-[hsl(var(--muted-foreground))] mt-1">
-        Recurring and one-shot tasks scheduled by agents.
+        Scheduled tasks and failure triage.
       </p>
     </div>
-    {#if tasks.lastUpdated}
-      <span class="text-xs text-[hsl(var(--muted-foreground))]">Updated {fmt(tasks.lastUpdated.toISOString())}</span>
-    {/if}
+    <span class="text-xs text-[hsl(var(--muted-foreground))]">
+      {#if activeTab === 'scheduled' && tasks.lastUpdated}Updated {fmt(tasks.lastUpdated.toISOString())}
+      {:else if activeTab === 'failures' && failures.lastUpdated}Updated {fmt(failures.lastUpdated.toISOString())}
+      {/if}
+    </span>
   </div>
+
+  <!-- Tab bar -->
+  <div class="flex gap-1 border-b border-[hsl(var(--border))]">
+    <button
+      onclick={() => { activeTab = 'scheduled'; }}
+      class="px-4 py-2 text-sm font-medium transition-colors {activeTab === 'scheduled'
+        ? 'border-b-2 border-[hsl(var(--foreground))] text-[hsl(var(--foreground))]'
+        : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}"
+    >
+      Scheduled {#if tasks.data}({tasks.data.length}){/if}
+    </button>
+    <button
+      onclick={() => { activeTab = 'failures'; }}
+      class="px-4 py-2 text-sm font-medium transition-colors {activeTab === 'failures'
+        ? 'border-b-2 border-[hsl(var(--foreground))] text-[hsl(var(--foreground))]'
+        : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}"
+    >
+      Failures {#if failures.data && failures.data.length > 0}<span class="ml-1 rounded-full bg-red-500 px-1.5 py-0.5 text-xs text-white">{failures.data.length}</span>{/if}
+    </button>
+  </div>
+
+  {#if activeTab === 'scheduled'}
 
   {#if tasks.error}
     <div class="rounded-md bg-red-900/30 border border-red-700 px-4 py-3 text-sm text-red-300">
@@ -188,5 +225,71 @@
     <p class="text-xs text-[hsl(var(--muted-foreground))]">
       {tasks.data.length} task{tasks.data.length !== 1 ? 's' : ''} across all groups. One row per series — shows the live pending/paused occurrence.
     </p>
+  {/if}
+
+  {:else}
+
+  <!-- Failures tab -->
+  {#if failures.error}
+    <div class="rounded-md bg-red-900/30 border border-red-700 px-4 py-3 text-sm text-red-300">
+      {failures.error}
+    </div>
+  {:else if failures.loading && !failures.data}
+    <div class="text-sm text-[hsl(var(--muted-foreground))]">Loading…</div>
+  {:else if !failures.data || failures.data.length === 0}
+    <div class="rounded-md border border-[hsl(var(--border))] px-6 py-12 text-center text-[hsl(var(--muted-foreground))] text-sm">
+      No task failures recorded.
+    </div>
+  {:else}
+    <div class="rounded-md border border-[hsl(var(--border))] overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-[hsl(var(--muted))] border-b border-[hsl(var(--border))]">
+            <tr>
+              <th class="text-left px-4 py-3 font-medium text-[hsl(var(--muted-foreground))]">Group</th>
+              <th class="text-left px-4 py-3 font-medium text-[hsl(var(--muted-foreground))]">Prompt</th>
+              <th class="text-left px-4 py-3 font-medium text-[hsl(var(--muted-foreground))]">Last failure</th>
+              <th class="text-left px-4 py-3 font-medium text-[hsl(var(--muted-foreground))]">Count</th>
+              <th class="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[hsl(var(--border))]">
+            {#each failures.data as f (f.series_id)}
+              <tr class="hover:bg-[hsl(var(--muted)/0.5)] transition-colors">
+                <td class="px-4 py-3 font-medium">{f.group_name}</td>
+                <td class="px-4 py-3">
+                  <p class="max-w-sm truncate text-[hsl(var(--foreground))]" title={f.prompt}>{f.prompt || '—'}</p>
+                  <p class="font-mono text-xs text-[hsl(var(--muted-foreground))]">{f.series_id.slice(0, 8)}…</p>
+                </td>
+                <td class="px-4 py-3 text-sm text-[hsl(var(--muted-foreground))]">
+                  {#if f.last_failure}
+                    <span title={f.last_failure}>{fmt(f.last_failure)}</span>
+                  {:else}—{/if}
+                </td>
+                <td class="px-4 py-3">
+                  <span class="inline-flex items-center rounded-full bg-red-900/40 px-2 py-0.5 text-xs font-medium text-red-300 border border-red-700/40">
+                    {f.failure_count}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                  <a
+                    href={`/tasks/${f.series_id}?groupId=${encodeURIComponent(f.agent_group_id)}&sessionId=${encodeURIComponent(f.session_id)}&groupName=${encodeURIComponent(f.group_name)}`}
+                    class="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                  >
+                    History →
+                  </a>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="text-xs text-[hsl(var(--muted-foreground))]">
+      {failures.data.length} task series with failures (latest session per group).
+      Drill-down into individual failing turns is parked pending Langfuse tracing.
+    </p>
+  {/if}
+
   {/if}
 </div>

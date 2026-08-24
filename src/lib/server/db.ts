@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource, TriageItem, TaskRun } from '$lib/types';
+import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource, TriageItem, TaskRun, FailedTaskSummary } from '$lib/types';
 
 type BetterDB = InstanceType<typeof Database>;
 
@@ -752,4 +752,63 @@ export function isFlapping(runs: TaskRun[]): boolean {
     if (settled[i].status !== settled[i + 1].status) transitions++;
   }
   return transitions >= FLAP_THRESHOLD;
+}
+
+export function getFailedTaskSummaries(): FailedTaskSummary[] {
+  const sessions = db.prepare(`
+    SELECT s.id AS session_id, s.agent_group_id, g.name AS group_name
+    FROM sessions s
+    JOIN agent_groups g ON g.id = s.agent_group_id
+    ORDER BY s.last_active DESC
+  `).all() as Array<{ session_id: string; agent_group_id: string; group_name: string }>;
+
+  const seen = new Set<string>();
+  const results: FailedTaskSummary[] = [];
+
+  for (const session of sessions) {
+    if (seen.has(session.agent_group_id)) continue;
+
+    try {
+      const { inbound } = getSessionDbPair(session.agent_group_id, session.session_id);
+      if (!inbound) continue;
+
+      const rows = inbound.prepare(`
+        SELECT series_id, COUNT(*) AS failure_count, MAX(process_after) AS last_failure, content
+        FROM messages_in
+        WHERE kind = 'task' AND status = 'failed'
+        GROUP BY series_id
+        ORDER BY last_failure DESC
+      `).all() as Array<{ series_id: string; failure_count: number; last_failure: string | null; content: string }>;
+
+      if (rows.length === 0) continue;
+      seen.add(session.agent_group_id);
+
+      for (const row of rows) {
+        let prompt = '';
+        try {
+          const parsed = JSON.parse(row.content) as { prompt?: string };
+          prompt = parsed.prompt ?? '';
+        } catch {
+          prompt = row.content.slice(0, 120);
+        }
+        results.push({
+          series_id: row.series_id,
+          agent_group_id: session.agent_group_id,
+          group_name: session.group_name,
+          session_id: session.session_id,
+          prompt,
+          last_failure: row.last_failure,
+          failure_count: row.failure_count,
+        });
+      }
+    } catch {
+      // session DB not accessible — skip
+    }
+  }
+
+  return results.sort((a, b) => {
+    if (!a.last_failure) return 1;
+    if (!b.last_failure) return -1;
+    return b.last_failure.localeCompare(a.last_failure);
+  });
 }
