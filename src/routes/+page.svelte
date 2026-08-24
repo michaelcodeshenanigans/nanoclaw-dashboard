@@ -1,17 +1,14 @@
 <script lang="ts">
   import { createPoller, type PollState } from '$lib/poll';
-  import type { HealthStatus, HealthStats } from '$lib/types';
+  import type { HealthStatus, HealthStats, KpiStats } from '$lib/types';
 
   let health = $state<PollState<HealthStatus>>({ data: null, loading: true, error: null, lastUpdated: null });
   let stats = $state<PollState<HealthStats>>({ data: null, loading: true, error: null, lastUpdated: null });
+  let kpi = $state<PollState<KpiStats>>({ data: null, loading: true, error: null, lastUpdated: null });
 
   $effect(() => {
     const p = createPoller<HealthStatus>(
-      (signal) =>
-        fetch('/api/health', { signal }).then((r) => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        }),
+      (signal) => fetch('/api/health', { signal }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
       5000,
       (s) => { health = s; }
     );
@@ -20,23 +17,169 @@
 
   $effect(() => {
     const p = createPoller<HealthStats>(
-      (signal) =>
-        fetch('/api/stats', { signal }).then((r) => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        }),
+      (signal) => fetch('/api/stats', { signal }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
       5000,
       (s) => { stats = s; }
     );
     return () => p.stop();
   });
+
+  $effect(() => {
+    const p = createPoller<KpiStats>(
+      (signal) => fetch('/api/kpi', { signal }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+      5000,
+      (s) => { kpi = s; }
+    );
+    return () => p.stop();
+  });
+
+  type TrendDir = 'up' | 'down' | 'flat';
+
+  function calcTrend(current: number, prior: number): TrendDir {
+    if (prior === 0 && current === 0) return 'flat';
+    if (prior === 0) return 'up';
+    const pct = (current - prior) / prior;
+    if (Math.abs(pct) < 0.01) return 'flat';
+    return pct > 0 ? 'up' : 'down';
+  }
+
+  function deltaLabel(current: number, prior: number): string {
+    if (prior === 0) return '';
+    const pct = ((current - prior) / prior) * 100;
+    const sign = pct >= 0 ? '+' : '';
+    return `${sign}${pct.toFixed(0)}%`;
+  }
+
+  function trendClass(dir: TrendDir, higherIsBad: boolean): string {
+    if (dir === 'flat') return 'text-[hsl(var(--muted-foreground))]';
+    if (higherIsBad) return dir === 'up' ? 'text-red-400' : 'text-green-400';
+    return 'text-[hsl(var(--muted-foreground))]';
+  }
+
+  function arrow(dir: TrendDir): string {
+    return dir === 'up' ? '↑' : dir === 'down' ? '↓' : '→';
+  }
+
+  function fmtDuration(s: number | null): string {
+    if (s === null) return '—';
+    if (s < 60) return `${Math.round(s)}s`;
+    if (s < 3600) return `${Math.round(s / 60)}m`;
+    return `${(s / 3600).toFixed(1)}h`;
+  }
+
+  // Derived KPI tiles from reactive kpi data
+  let kpiTiles = $derived.by(() => {
+    const d = kpi.data;
+    if (!d) return null;
+
+    const sessTrend = calcTrend(d.current.sessions, d.prior.sessions);
+    const failTrend = calcTrend(d.current.failures, d.prior.failures);
+    const rateTrend = calcTrend(d.current.failure_rate, d.prior.failure_rate);
+    const durTrend = d.current.avg_duration_s !== null && d.prior.avg_duration_s !== null
+      ? calcTrend(d.current.avg_duration_s, d.prior.avg_duration_s)
+      : 'flat' as TrendDir;
+
+    return {
+      sessions: {
+        value: String(d.current.sessions),
+        valueClass: 'text-[hsl(var(--foreground))]',
+        showDelta: d.prior.sessions > 0,
+        deltaText: `${arrow(sessTrend)} ${deltaLabel(d.current.sessions, d.prior.sessions)} vs prior`,
+        deltaClass: trendClass(sessTrend, false)
+      },
+      failures: {
+        value: String(d.current.failures),
+        valueClass: d.current.failures > 0 ? 'text-red-400' : 'text-[hsl(var(--foreground))]',
+        showDelta: d.prior.failures > 0 || d.current.failures > 0,
+        deltaText: `${arrow(failTrend)} ${deltaLabel(d.current.failures, d.prior.failures)} vs prior`,
+        deltaClass: trendClass(failTrend, true)
+      },
+      failureRate: {
+        value: `${d.current.failure_rate.toFixed(1)}%`,
+        valueClass: d.current.failure_rate > 10 ? 'text-red-400' : d.current.failure_rate > 0 ? 'text-yellow-400' : 'text-[hsl(var(--foreground))]',
+        showDelta: d.prior.sessions > 0,
+        deltaText: `${arrow(rateTrend)} vs prior`,
+        deltaClass: trendClass(rateTrend, true)
+      },
+      avgDuration: {
+        value: fmtDuration(d.current.avg_duration_s),
+        valueClass: 'text-[hsl(var(--foreground))]',
+        showDelta: d.current.avg_duration_s !== null && d.prior.avg_duration_s !== null,
+        deltaText: `${arrow(durTrend)} vs prior`,
+        deltaClass: trendClass(durTrend, false)
+      }
+    };
+  });
 </script>
 
-<div class="p-8">
-  <div class="max-w-4xl mx-auto">
-    <div class="mb-8">
+<div class="p-4 md:p-8">
+  <div class="max-w-6xl mx-auto">
+    <div class="mb-6">
       <h1 class="text-2xl font-bold text-[hsl(var(--foreground))]">NanoClaw Dashboard</h1>
       <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">System overview</p>
+    </div>
+
+    <!-- KPI Banner -->
+    <div class="mb-6">
+      <p class="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wide mb-3">Last 7 days</p>
+
+      {#if kpi.loading}
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {#each { length: 5 } as _}
+            <div class="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 h-20"></div>
+          {/each}
+        </div>
+      {:else if kpi.error}
+        <p class="text-sm text-red-400">KPI error: {kpi.error}</p>
+      {:else if kpiTiles}
+        {@const t = kpiTiles}
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+
+          <!-- Sessions -->
+          <div class="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+            <p class="text-xs text-[hsl(var(--muted-foreground))] mb-1">Sessions</p>
+            <p class="text-2xl font-bold {t!.sessions.valueClass}">{t!.sessions.value}</p>
+            {#if t!.sessions.showDelta}
+              <p class="text-xs mt-1 {t!.sessions.deltaClass}">{t!.sessions.deltaText}</p>
+            {/if}
+          </div>
+
+          <!-- Failures -->
+          <div class="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+            <p class="text-xs text-[hsl(var(--muted-foreground))] mb-1">Failures</p>
+            <p class="text-2xl font-bold {t!.failures.valueClass}">{t!.failures.value}</p>
+            {#if t!.failures.showDelta}
+              <p class="text-xs mt-1 {t!.failures.deltaClass}">{t!.failures.deltaText}</p>
+            {/if}
+          </div>
+
+          <!-- Failure Rate -->
+          <div class="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+            <p class="text-xs text-[hsl(var(--muted-foreground))] mb-1">Failure Rate</p>
+            <p class="text-2xl font-bold {t!.failureRate.valueClass}">{t!.failureRate.value}</p>
+            {#if t!.failureRate.showDelta}
+              <p class="text-xs mt-1 {t!.failureRate.deltaClass}">{t!.failureRate.deltaText}</p>
+            {/if}
+          </div>
+
+          <!-- Avg Duration -->
+          <div class="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+            <p class="text-xs text-[hsl(var(--muted-foreground))] mb-1">Avg Duration</p>
+            <p class="text-2xl font-bold {t!.avgDuration.valueClass}">{t!.avgDuration.value}</p>
+            {#if t!.avgDuration.showDelta}
+              <p class="text-xs mt-1 {t!.avgDuration.deltaClass}">{t!.avgDuration.deltaText}</p>
+            {/if}
+          </div>
+
+          <!-- Spend -->
+          <div class="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+            <p class="text-xs text-[hsl(var(--muted-foreground))] mb-1">Spend</p>
+            <p class="text-2xl font-bold text-[hsl(var(--muted-foreground))]">—</p>
+            <p class="text-xs mt-1 text-[hsl(var(--muted-foreground))]">Unavailable</p>
+          </div>
+
+        </div>
+      {/if}
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

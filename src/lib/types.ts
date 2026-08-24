@@ -145,6 +145,20 @@ export interface LlmCall {
   duration_ms: number | null;
 }
 
+export interface KpiPeriod {
+  sessions: number;
+  failures: number;
+  failure_rate: number;
+  avg_duration_s: number | null;
+}
+
+export interface KpiStats {
+  current: KpiPeriod;
+  prior: KpiPeriod;
+  window_days: 7;
+  spend_unavailable: true;
+}
+
 export interface PendingApproval {
   approval_id: string;
   session_id: string | null;

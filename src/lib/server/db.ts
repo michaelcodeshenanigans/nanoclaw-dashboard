@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall } from '$lib/types';
+import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod } from '$lib/types';
 
 type BetterDB = InstanceType<typeof Database>;
 
@@ -381,6 +381,46 @@ export function getLlmCalls(sessionId: string): LlmCall[] {
   } catch {
     return [];
   }
+}
+
+function queryKpiPeriod(since: string, until: string): KpiPeriod {
+  const row = db.prepare(`
+    SELECT
+      COUNT(*) AS sessions,
+      SUM(CASE WHEN container_status = 'error' THEN 1 ELSE 0 END) AS failures,
+      AVG(
+        CASE
+          WHEN last_active IS NOT NULL AND last_active > created_at
+          THEN (julianday(last_active) - julianday(created_at)) * 86400.0
+          ELSE NULL
+        END
+      ) AS avg_duration_s
+    FROM sessions
+    WHERE created_at >= ? AND created_at < ?
+  `).get(since, until) as { sessions: number; failures: number; avg_duration_s: number | null };
+
+  const sessions = row.sessions ?? 0;
+  const failures = row.failures ?? 0;
+  return {
+    sessions,
+    failures,
+    failure_rate: sessions > 0 ? (failures / sessions) * 100 : 0,
+    avg_duration_s: row.avg_duration_s ?? null
+  };
+}
+
+export function getKpiStats(): KpiStats {
+  const now = new Date();
+  const t7 = new Date(now.getTime() - 7 * 86400000).toISOString();
+  const t14 = new Date(now.getTime() - 14 * 86400000).toISOString();
+  const tNow = now.toISOString();
+
+  return {
+    current: queryKpiPeriod(t7, tNow),
+    prior: queryKpiPeriod(t14, t7),
+    window_days: 7,
+    spend_unavailable: true
+  };
 }
 
 export function getScheduledTasks(): ScheduledTask[] {
