@@ -762,12 +762,12 @@ export function getFailedTaskSummaries(): FailedTaskSummary[] {
     ORDER BY s.last_active DESC
   `).all() as Array<{ session_id: string; agent_group_id: string; group_name: string }>;
 
-  const seen = new Set<string>();
+  // Dedup by series_id, not by group — each task series has its own session,
+  // so skipping a group after the first session would miss sibling series sessions.
+  const seenSeries = new Set<string>();
   const results: FailedTaskSummary[] = [];
 
   for (const session of sessions) {
-    if (seen.has(session.agent_group_id)) continue;
-
     try {
       const { inbound } = getSessionDbPair(session.agent_group_id, session.session_id);
       if (!inbound) continue;
@@ -780,10 +780,10 @@ export function getFailedTaskSummaries(): FailedTaskSummary[] {
         ORDER BY last_failure DESC
       `).all() as Array<{ series_id: string; failure_count: number; last_failure: string | null; content: string }>;
 
-      if (rows.length === 0) continue;
-      seen.add(session.agent_group_id);
-
       for (const row of rows) {
+        if (seenSeries.has(row.series_id)) continue;
+        seenSeries.add(row.series_id);
+
         let prompt = '';
         try {
           const parsed = JSON.parse(row.content) as { prompt?: string };
