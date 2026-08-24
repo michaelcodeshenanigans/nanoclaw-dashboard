@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource } from '$lib/types';
+import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource, TriageItem } from '$lib/types';
 
 type BetterDB = InstanceType<typeof Database>;
 
@@ -527,6 +527,115 @@ export function getKpiStats(): KpiStats {
     window_days: 7,
     spend_unavailable: true
   };
+}
+
+function relativeTimeMs(ts: string): string {
+  try {
+    const ms = Date.now() - new Date(ts).getTime();
+    const h = Math.floor(ms / 3600000);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  } catch {
+    return ts;
+  }
+}
+
+export function getTriageItems(): TriageItem[] {
+  const items: TriageItem[] = [];
+
+  // 1. Pending approvals — high priority
+  try {
+    const approvals = getPendingApprovals('pending');
+    for (const a of approvals) {
+      items.push({
+        item_key: `approval:${a.approval_id}`,
+        item_type: 'approval',
+        priority: 'high',
+        title: a.title || a.action,
+        description: `Action "${a.action}" is waiting for approval via ${a.channel_type ?? 'chat'}`,
+        group_name: a.group_name,
+        group_id: a.agent_group_id,
+        occurred_at: a.created_at,
+        session_id: a.session_id ?? undefined,
+        approval_id: a.approval_id
+      });
+    }
+  } catch { /* noop */ }
+
+  // 2. Dropped / unregistered senders — low priority
+  try {
+    const dropped = getUnregisteredSenders();
+    for (const d of dropped) {
+      items.push({
+        item_key: `dropped:${d.channel_type}:${d.platform_id}`,
+        item_type: 'dropped',
+        priority: 'low',
+        title: `Dropped message from ${d.sender_name ?? d.platform_id}`,
+        description: `${d.message_count} message(s) via ${d.channel_type} — reason: ${d.reason}`,
+        group_name: d.group_name,
+        group_id: d.agent_group_id,
+        occurred_at: d.last_seen,
+        channel_type: d.channel_type,
+        platform_id: d.platform_id
+      });
+    }
+  } catch { /* noop */ }
+
+  // 3. Stalled sessions — running but last_active > 2h ago — medium priority
+  try {
+    const twoHoursAgo = new Date(Date.now() - 2 * 3600000).toISOString();
+    const stalledRows = db.prepare(`
+      SELECT s.id, s.agent_group_id, s.last_active, s.created_at, g.name AS group_name
+      FROM sessions s
+      JOIN agent_groups g ON g.id = s.agent_group_id
+      WHERE s.container_status = 'running'
+        AND (s.last_active IS NULL OR s.last_active < ?)
+      ORDER BY s.last_active ASC
+      LIMIT 50
+    `).all(twoHoursAgo) as Array<{
+      id: string; agent_group_id: string;
+      last_active: string | null; created_at: string; group_name: string;
+    }>;
+
+    for (const s of stalledRows) {
+      items.push({
+        item_key: `stalled:${s.id}`,
+        item_type: 'stalled',
+        priority: 'medium',
+        title: `Stalled session in ${s.group_name}`,
+        description: s.last_active
+          ? `Session running but last active ${relativeTimeMs(s.last_active)}`
+          : 'Session running but has never been active',
+        group_name: s.group_name,
+        group_id: s.agent_group_id,
+        occurred_at: s.last_active ?? s.created_at,
+        session_id: s.id
+      });
+    }
+  } catch { /* noop */ }
+
+  // 4. Overdue scheduled tasks — process_after in the past — medium priority
+  try {
+    const now = new Date().toISOString();
+    const allTasks = getScheduledTasks();
+    for (const t of allTasks) {
+      if (t.status === 'pending' && t.process_after && t.process_after < now) {
+        items.push({
+          item_key: `overdue:${t.id}`,
+          item_type: 'overdue_task',
+          priority: 'medium',
+          title: `Overdue task in ${t.group_name}`,
+          description: t.prompt.slice(0, 100) + (t.prompt.length > 100 ? '…' : ''),
+          group_name: t.group_name,
+          group_id: t.agent_group_id,
+          occurred_at: t.process_after,
+          task_id: t.id
+        });
+      }
+    }
+  } catch { /* noop */ }
+
+  return items;
 }
 
 export function getScheduledTasks(): ScheduledTask[] {

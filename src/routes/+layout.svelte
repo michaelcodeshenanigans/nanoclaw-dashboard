@@ -4,6 +4,7 @@
 
   const navItems = [
     { href: '/', label: 'Overview' },
+    { href: '/triage', label: 'Triage' },
     { href: '/run-history', label: 'Run History' },
     { href: '/groups', label: 'Groups' },
     { href: '/sessions', label: 'Sessions' },
@@ -14,6 +15,19 @@
 
   let { children } = $props();
   let sidebarOpen = $state(false);
+  let triageCount = $state(0);
+
+  $effect(() => {
+    function fetchCount() {
+      fetch('/api/triage/count')
+        .then(r => r.ok ? r.json() : { count: 0 })
+        .then((d: { count: number }) => { triageCount = d.count; })
+        .catch(() => {});
+    }
+    fetchCount();
+    const iv = setInterval(fetchCount, 30000);
+    return () => clearInterval(iv);
+  });
 
   function isActive(href: string): boolean {
     if (href === '/') return page.url.pathname === '/';
@@ -70,12 +84,15 @@
         <a
           href={item.href}
           onclick={closeDrawer}
-          class="flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors
+          class="flex items-center justify-between gap-3 px-3 py-2 min-h-[44px] rounded-md text-sm transition-colors
             {isActive(item.href)
               ? 'bg-[hsl(var(--accent))] text-[hsl(var(--foreground))] font-medium'
               : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))]'}"
         >
           {item.label}
+          {#if item.href === '/triage' && triageCount > 0}
+            <span class="inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-semibold h-4 min-w-[16px] px-1">{triageCount > 99 ? '99+' : triageCount}</span>
+          {/if}
         </a>
       {/each}
     </nav>
@@ -94,12 +111,15 @@
       {#each navItems as item}
         <a
           href={item.href}
-          class="flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors
+          class="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm transition-colors
             {isActive(item.href)
               ? 'bg-[hsl(var(--accent))] text-[hsl(var(--foreground))] font-medium'
               : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))]'}"
         >
           {item.label}
+          {#if item.href === '/triage' && triageCount > 0}
+            <span class="inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-semibold h-4 min-w-[16px] px-1">{triageCount > 99 ? '99+' : triageCount}</span>
+          {/if}
         </a>
       {/each}
     </nav>

@@ -5,10 +5,10 @@
 
 ## Current Position
 
-Phase: 12 — Unified Run History
+Phase: 13 — Triage Inbox
 Plan: —
-Status: In progress
-Last activity: 2026-08-24 — Phase 11 (KPI Banner) complete
+Status: Complete
+Last activity: 2026-08-24 — Phase 13 (Triage Inbox) complete
 
 ## Milestone
 
@@ -30,8 +30,8 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 10A | NanoClaw Core — LLM Call Capture | Parked (Langfuse) | 2 |
 | 10B | Dashboard — LLM Call Viewer | Parked (Langfuse) | 2 |
 | 11 | Overview KPI Banner | Complete | 2 |
-| 12 | Unified Run History | Not started | 2 |
-| 13 | Triage Inbox | Not started | 3 |
+| 12 | Unified Run History | Complete | 2 |
+| 13 | Triage Inbox | Complete | 3 |
 | 14 | Chat-pushed Alerts/Monitors | Not started | 4 |
 | 15 | Cost & Token Command Center | Not started | 3 |
 | 16 | Emergency Stop/Pause | Not started | 2 |

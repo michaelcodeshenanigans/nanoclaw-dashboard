@@ -176,6 +176,40 @@ export interface KpiStats {
   spend_unavailable: true;
 }
 
+export type TriageItemType = 'approval' | 'dropped' | 'stalled' | 'overdue_task';
+export type TriagePriority = 'high' | 'medium' | 'low';
+
+export interface TriageItem {
+  item_key: string;
+  item_type: TriageItemType;
+  priority: TriagePriority;
+  title: string;
+  description: string;
+  group_name: string | null;
+  group_id: string | null;
+  occurred_at: string;
+  // type-specific
+  session_id?: string;
+  approval_id?: string;
+  channel_type?: string;
+  platform_id?: string;
+  task_id?: string;
+}
+
+export interface TriageCounts {
+  total: number;
+  approval: number;
+  dropped: number;
+  stalled: number;
+  overdue_task: number;
+}
+
+export interface TriageResponse {
+  items: TriageItem[];
+  counts: TriageCounts;
+  state_available: boolean;
+}
+
 export interface PendingApproval {
   approval_id: string;
   session_id: string | null;

@@ -9,9 +9,11 @@ services:
       - PORT=3000
       - NANOCLAW_DB=/nanoclaw-data/v2.db
       - NCL_SOCKET=/ncl.sock
+      - DASHBOARD_DB=/dashboard-data/dashboard.db
     volumes:
       - /home/michael/workspace/nanoclaw-v2/data:/nanoclaw-data:ro
       - /home/michael/workspace/nanoclaw-v2/data/ncl.sock:/ncl.sock
+      - nanoclaw-dashboard-data:/dashboard-data
     networks:
       - saltbox
     labels:
@@ -25,3 +27,6 @@ services:
 networks:
   saltbox:
     external: true
+
+volumes:
+  nanoclaw-dashboard-data:
