@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod } from '$lib/types';
+import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource } from '$lib/types';
 
 type BetterDB = InstanceType<typeof Database>;
 
@@ -381,6 +381,112 @@ export function getLlmCalls(sessionId: string): LlmCall[] {
   } catch {
     return [];
   }
+}
+
+export interface RunHistoryFilters {
+  status?: RunStatus;
+  groupId?: string;
+  triggerSource?: TriggerSource;
+  since?: string;
+  limit?: number;
+}
+
+function containerStatusToRunStatus(cs: string | null): RunStatus {
+  if (cs === 'running') return 'running';
+  if (cs === 'error') return 'failed';
+  if (cs === 'stopped') return 'success';
+  return 'unknown';
+}
+
+export function getRunHistory(filters: RunHistoryFilters = {}): RunHistoryEntry[] {
+  const { status, groupId, triggerSource, since, limit = 200 } = filters;
+
+  // Fetch sessions as runs
+  const sessionWhere: string[] = [];
+  const sessionParams: string[] = [];
+
+  if (groupId) { sessionWhere.push('s.agent_group_id = ?'); sessionParams.push(groupId); }
+  if (since) { sessionWhere.push('s.created_at >= ?'); sessionParams.push(since); }
+
+  const sessionWhereSql = sessionWhere.length ? `WHERE ${sessionWhere.join(' AND ')}` : '';
+
+  const sessionRows = db.prepare(`
+    SELECT
+      s.id,
+      s.agent_group_id AS group_id,
+      g.name           AS group_name,
+      s.container_status,
+      s.created_at     AS started_at,
+      s.last_active,
+      CASE
+        WHEN s.last_active IS NOT NULL AND s.last_active > s.created_at
+        THEN (julianday(s.last_active) - julianday(s.created_at)) * 86400.0
+        ELSE NULL
+      END AS duration_s
+    FROM sessions s
+    JOIN agent_groups g ON g.id = s.agent_group_id
+    ${sessionWhereSql}
+    ORDER BY s.created_at DESC
+    LIMIT ?
+  `).all(...sessionParams, limit) as Array<{
+    id: string;
+    group_id: string;
+    group_name: string;
+    container_status: string | null;
+    started_at: string;
+    last_active: string | null;
+    duration_s: number | null;
+  }>;
+
+  const sessionEntries: RunHistoryEntry[] = sessionRows.map(r => ({
+    id: r.id,
+    run_type: 'session',
+    run_status: containerStatusToRunStatus(r.container_status),
+    group_id: r.group_id,
+    group_name: r.group_name,
+    trigger_source: 'message',
+    duration_s: r.duration_s,
+    turn_count: null,
+    cost: null,
+    started_at: r.started_at,
+    last_active: r.last_active
+  }));
+
+  // Fetch scheduled tasks as runs
+  let taskEntries: RunHistoryEntry[] = [];
+  if (!triggerSource || triggerSource === 'scheduled') {
+    try {
+      const scheduledTasks = getScheduledTasks();
+      taskEntries = scheduledTasks
+        .filter(t => !groupId || t.agent_group_id === groupId)
+        .filter(t => !since || (t.process_after ?? '') >= since)
+        .map(t => ({
+          id: t.id,
+          run_type: 'task' as const,
+          run_status: (t.status === 'pending' ? 'waiting' : 'waiting') as RunStatus,
+          group_id: t.agent_group_id,
+          group_name: t.group_name,
+          trigger_source: 'scheduled' as const,
+          duration_s: null,
+          turn_count: null,
+          cost: null,
+          started_at: t.process_after ?? new Date().toISOString(),
+          last_active: null
+        }));
+    } catch {
+      // session DBs not accessible
+    }
+  }
+
+  // Merge and filter by status/trigger
+  const all = [...sessionEntries, ...taskEntries]
+    .filter(r => !status || r.run_status === status)
+    .filter(r => !triggerSource || r.trigger_source === triggerSource);
+
+  // Sort merged by started_at desc, cap at limit
+  return all
+    .sort((a, b) => b.started_at.localeCompare(a.started_at))
+    .slice(0, limit);
 }
 
 function queryKpiPeriod(since: string, until: string): KpiPeriod {

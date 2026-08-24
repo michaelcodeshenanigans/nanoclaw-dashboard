@@ -145,6 +145,23 @@ export interface LlmCall {
   duration_ms: number | null;
 }
 
+export type RunStatus = 'running' | 'success' | 'failed' | 'waiting' | 'dropped' | 'unknown';
+export type TriggerSource = 'message' | 'scheduled' | 'manual';
+
+export interface RunHistoryEntry {
+  id: string;
+  run_type: 'session' | 'task';
+  run_status: RunStatus;
+  group_id: string;
+  group_name: string;
+  trigger_source: TriggerSource;
+  duration_s: number | null;
+  turn_count: number | null;
+  cost: null;
+  started_at: string;
+  last_active: string | null;
+}
+
 export interface KpiPeriod {
   sessions: number;
   failures: number;

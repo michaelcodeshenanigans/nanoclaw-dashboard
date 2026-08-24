@@ -4,6 +4,7 @@
 
   const navItems = [
     { href: '/', label: 'Overview' },
+    { href: '/run-history', label: 'Run History' },
     { href: '/groups', label: 'Groups' },
     { href: '/sessions', label: 'Sessions' },
     { href: '/approvals', label: 'Approvals' },
