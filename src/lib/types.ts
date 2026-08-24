@@ -176,6 +176,31 @@ export interface KpiStats {
   spend_unavailable: true;
 }
 
+export type MonitorType = 'approval_timeout' | 'session_silence';
+export type MonitorPushStatus = 'pending' | 'sent' | 'skipped' | 'failed';
+
+export interface Monitor {
+  id: string;
+  name: string;
+  type: MonitorType;
+  enabled: boolean;
+  threshold_minutes: number;
+  target_group_id: string | null;
+  cooldown_minutes: number;
+  last_fired_at: string | null;
+  created_at: string;
+}
+
+export interface MonitorAlert {
+  id: number;
+  monitor_id: string;
+  monitor_name: string;
+  fired_at: string;
+  condition_met: string;
+  push_status: MonitorPushStatus;
+  acknowledged: boolean;
+}
+
 export type TriageItemType = 'approval' | 'dropped' | 'stalled' | 'overdue_task';
 export type TriagePriority = 'high' | 'medium' | 'low';
 

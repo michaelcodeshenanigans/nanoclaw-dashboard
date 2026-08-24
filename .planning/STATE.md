@@ -5,10 +5,10 @@
 
 ## Current Position
 
-Phase: 13 — Triage Inbox
+Phase: 14 — Chat-pushed Alerts/Monitors
 Plan: —
 Status: Complete
-Last activity: 2026-08-24 — Phase 13 (Triage Inbox) complete
+Last activity: 2026-08-24 — Phase 14 (Monitors) complete
 
 ## Milestone
 
@@ -32,7 +32,7 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 11 | Overview KPI Banner | Complete | 2 |
 | 12 | Unified Run History | Complete | 2 |
 | 13 | Triage Inbox | Complete | 3 |
-| 14 | Chat-pushed Alerts/Monitors | Not started | 4 |
+| 14 | Chat-pushed Alerts/Monitors | Complete | 4 |
 | 15 | Cost & Token Command Center | Not started | 3 |
 | 16 | Emergency Stop/Pause | Not started | 2 |
 | 17 | Run Now + Task Run History | Not started | 3 |

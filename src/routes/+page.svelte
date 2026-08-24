@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createPoller, type PollState } from '$lib/poll';
-  import type { HealthStatus, HealthStats, KpiStats } from '$lib/types';
+  import type { HealthStatus, HealthStats, KpiStats, MonitorAlert } from '$lib/types';
 
   let health = $state<PollState<HealthStatus>>({ data: null, loading: true, error: null, lastUpdated: null });
   let stats = $state<PollState<HealthStats>>({ data: null, loading: true, error: null, lastUpdated: null });
@@ -67,6 +67,28 @@
     return `${(s / 3600).toFixed(1)}h`;
   }
 
+  let activeAlerts = $state<MonitorAlert[]>([]);
+  $effect(() => {
+    function fetchAlerts() {
+      fetch('/api/monitors/alerts?limit=5&unacknowledged=true')
+        .then(r => r.ok ? r.json() : [])
+        .then((d: MonitorAlert[]) => { activeAlerts = d; })
+        .catch(() => {});
+    }
+    fetchAlerts();
+    const iv = setInterval(fetchAlerts, 30000);
+    return () => clearInterval(iv);
+  });
+
+  async function acknowledgeAlert(id: number) {
+    activeAlerts = activeAlerts.filter(a => a.id !== id);
+    await fetch('/api/monitors/alerts/acknowledge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+  }
+
   // Derived KPI tiles from reactive kpi data
   let kpiTiles = $derived.by(() => {
     const d = kpi.data;
@@ -118,6 +140,28 @@
       <h1 class="text-2xl font-bold text-[hsl(var(--foreground))]">NanoClaw Dashboard</h1>
       <p class="mt-1 text-sm text-[hsl(var(--muted-foreground))]">System overview</p>
     </div>
+
+    <!-- Monitor Alerts -->
+    {#if activeAlerts.length > 0}
+      <div class="mb-4 flex flex-col gap-2">
+        {#each activeAlerts as alert (alert.id)}
+          <div class="flex items-start gap-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3">
+            <span class="mt-0.5 text-yellow-400 shrink-0">⚠</span>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-yellow-300">{alert.monitor_name}</p>
+              <p class="text-xs text-yellow-400/80 mt-0.5">{alert.condition_met}</p>
+            </div>
+            <button
+              onclick={() => acknowledgeAlert(alert.id)}
+              class="shrink-0 text-xs text-yellow-400/60 hover:text-yellow-300 transition-colors"
+              aria-label="Dismiss alert"
+            >
+              ✕
+            </button>
+          </div>
+        {/each}
+      </div>
+    {/if}
 
     <!-- KPI Banner -->
     <div class="mb-6">

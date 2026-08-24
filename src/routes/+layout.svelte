@@ -6,6 +6,7 @@
     { href: '/', label: 'Overview' },
     { href: '/triage', label: 'Triage' },
     { href: '/run-history', label: 'Run History' },
+    { href: '/monitors', label: 'Monitors' },
     { href: '/groups', label: 'Groups' },
     { href: '/sessions', label: 'Sessions' },
     { href: '/approvals', label: 'Approvals' },

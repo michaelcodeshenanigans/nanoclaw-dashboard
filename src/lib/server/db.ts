@@ -638,6 +638,22 @@ export function getTriageItems(): TriageItem[] {
   return items;
 }
 
+export function checkApprovalTimeout(thresholdMinutes: number, groupId: string | null): string | null {
+  const cutoff = new Date(Date.now() - thresholdMinutes * 60000).toISOString();
+  const row = groupId
+    ? (db.prepare(`SELECT COUNT(*) AS n FROM pending_approvals WHERE status='pending' AND created_at < ? AND agent_group_id = ?`).get(cutoff, groupId) as { n: number })
+    : (db.prepare(`SELECT COUNT(*) AS n FROM pending_approvals WHERE status='pending' AND created_at < ?`).get(cutoff) as { n: number });
+  return row.n > 0 ? `${row.n} approval(s) pending for >${thresholdMinutes}min` : null;
+}
+
+export function checkSessionSilence(thresholdMinutes: number, groupId: string | null): string | null {
+  const cutoff = new Date(Date.now() - thresholdMinutes * 60000).toISOString();
+  const row = groupId
+    ? (db.prepare(`SELECT COUNT(*) AS n FROM sessions WHERE container_status='running' AND (last_active IS NULL OR last_active < ?) AND agent_group_id = ?`).get(cutoff, groupId) as { n: number })
+    : (db.prepare(`SELECT COUNT(*) AS n FROM sessions WHERE container_status='running' AND (last_active IS NULL OR last_active < ?)`).get(cutoff) as { n: number });
+  return row.n > 0 ? `${row.n} running session(s) silent for >${thresholdMinutes}min` : null;
+}
+
 export function getScheduledTasks(): ScheduledTask[] {
   const sessions = db.prepare(`
     SELECT
