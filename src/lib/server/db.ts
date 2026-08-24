@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource, TriageItem, TaskRun, FailedTaskSummary, GroupConfig, McpServerConfig } from '$lib/types';
+import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource, TriageItem, TaskRun, FailedTaskSummary, ErrorDigestGroup, GroupConfig, McpServerConfig } from '$lib/types';
 
 type BetterDB = InstanceType<typeof Database>;
 
@@ -811,6 +811,32 @@ export function getFailedTaskSummaries(): FailedTaskSummary[] {
     if (!b.last_failure) return -1;
     return b.last_failure.localeCompare(a.last_failure);
   });
+}
+
+// ─── Error Digest ────────────────────────────────────────────────────────────
+
+export function getErrorDigest(): ErrorDigestGroup[] {
+  const summaries = getFailedTaskSummaries();
+  const byGroup = new Map<string, ErrorDigestGroup>();
+  for (const s of summaries) {
+    const g = byGroup.get(s.agent_group_id);
+    if (g) {
+      g.failing_series++;
+      g.total_failure_runs += s.failure_count;
+      if (!g.last_failure || (s.last_failure && s.last_failure > g.last_failure)) {
+        g.last_failure = s.last_failure;
+      }
+    } else {
+      byGroup.set(s.agent_group_id, {
+        agent_group_id: s.agent_group_id,
+        group_name: s.group_name,
+        failing_series: 1,
+        total_failure_runs: s.failure_count,
+        last_failure: s.last_failure,
+      });
+    }
+  }
+  return [...byGroup.values()].sort((a, b) => b.total_failure_runs - a.total_failure_runs);
 }
 
 // ─── Group Config (skills + MCP servers) ────────────────────────────────────

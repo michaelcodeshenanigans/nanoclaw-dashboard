@@ -5,10 +5,10 @@
 
 ## Current Position
 
-Phase: 24 — Skills & MCP Server Inventory
+Phase: 23 — Error Digest
 Plan: —
 Status: Complete
-Last activity: 2026-08-24 — Phase 24 complete (config inventory page + Group Detail config section)
+Last activity: 2026-08-24 — Phase 23 complete (Digest tab on Tasks page — per-group failure aggregation)
 
 ## Milestone
 
@@ -41,7 +41,7 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 20 | Failure Triage | Partial (drill-down parked Langfuse) | 3 |
 | 21 | Host & Container Health Strip | Complete | 2 |
 | 22 | Annotations | Complete | 2 |
-| 23 | Error Digest | Not started | 2 |
+| 23 | Error Digest | Complete | 2 |
 | 24 | Skills & MCP Server Inventory | Complete | 2 |
 | 25 | Connections Health | Not started | 2 |
 | 26 | Instructions/Memory Version History | Parked (no version data in core) | 3 |
