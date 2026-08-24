@@ -81,17 +81,6 @@
     }
   }
 
-  let stoppingSession = $state<string | null>(null);
-
-  async function stopSession(sessionId: string) {
-    if (!confirm('Stop this session?')) return;
-    stoppingSession = sessionId;
-    try {
-      await fetch(`/api/sessions/${sessionId}/stop`, { method: 'POST' });
-    } finally {
-      stoppingSession = null;
-    }
-  }
 </script>
 
 <svelte:head>
@@ -200,11 +189,11 @@
                 <div class="flex items-center justify-end gap-2">
                   {#if s.container_status === 'running'}
                     <button
-                      onclick={() => stopSession(s.id)}
-                      disabled={stoppingSession === s.id}
-                      class="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
+                      disabled
+                      title="Session-scoped stop is pending a NanoClaw core update"
+                      class="text-xs text-red-400/40 cursor-not-allowed"
                     >
-                      {stoppingSession === s.id ? 'Stopping…' : 'Stop'}
+                      Stop
                     </button>
                   {/if}
                   <a

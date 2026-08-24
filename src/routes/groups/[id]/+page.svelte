@@ -299,7 +299,7 @@
       <!-- Emergency Stop -->
       <div class="flex flex-col gap-3">
         <h3 class="text-sm font-medium text-[hsl(var(--foreground))]">Emergency Stop</h3>
-        <p class="text-xs text-[hsl(var(--muted-foreground))]">Terminates all running sessions for this group. The agent will not restart automatically.</p>
+        <p class="text-xs text-[hsl(var(--muted-foreground))]">Stops all running sessions for this group. The group will not restart until the next user message arrives.</p>
         <div class="flex items-center gap-4">
           <button
             onclick={handleStop}

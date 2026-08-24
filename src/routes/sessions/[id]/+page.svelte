@@ -55,30 +55,6 @@
     }
   }
 
-  let stopLoading = $state(false);
-  let stopFeedback = $state('');
-
-  async function handleStop() {
-    if (!confirm('Stop this session? The agent will be terminated.')) return;
-    stopLoading = true;
-    stopFeedback = '';
-    try {
-      const res = await fetch(`/api/sessions/${id}/stop`, { method: 'POST' });
-      if (res.status === 202) {
-        stopFeedback = 'Stop request submitted — pending approval';
-      } else if (res.ok) {
-        stopFeedback = 'Session stopped';
-      } else {
-        const body = await res.json().catch(() => ({}));
-        stopFeedback = `Error: ${(body as { message?: string }).message ?? res.statusText}`;
-      }
-    } catch (err) {
-      stopFeedback = `Error: ${err instanceof Error ? err.message : String(err)}`;
-    } finally {
-      stopLoading = false;
-      setTimeout(() => { stopFeedback = ''; }, 5000);
-    }
-  }
 </script>
 
 <svelte:head>
@@ -213,15 +189,13 @@
     <div class="flex items-center gap-3">
       {#if session.data?.container_status === 'running'}
         <button
-          onclick={handleStop}
-          disabled={stopLoading}
-          class="rounded-md border border-red-500/50 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
+          disabled
+          title="Session-scoped stop is pending a NanoClaw core update"
+          class="rounded-md border border-red-500/30 bg-red-500/5 px-4 py-2 text-sm font-medium text-red-400/40 cursor-not-allowed"
         >
-          {stopLoading ? 'Stopping…' : 'Stop Session'}
+          Stop Session
         </button>
-      {/if}
-      {#if stopFeedback}
-        <span class="text-sm {stopFeedback.startsWith('Error') ? 'text-red-400' : 'text-green-400'}">{stopFeedback}</span>
+        <span class="text-xs text-[hsl(var(--muted-foreground))]">Pending NanoClaw core support</span>
       {/if}
     </div>
     <div class="flex gap-3">

@@ -1,19 +1,8 @@
-import { error, json } from '@sveltejs/kit';
-import { execNcl } from '$lib/server/ncl';
+import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ params }) => {
-  const id = params.id;
-  if (!id) throw error(400, 'Missing session id');
-
-  try {
-    const output = await execNcl(['sessions', 'stop', '--id', id]);
-    return json({ status: 'ok', output });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes('approval-pending')) {
-      return json({ status: 'approval-pending' }, { status: 202 });
-    }
-    throw error(500, msg);
-  }
+// TODO: wire session-scoped stop once NanoClaw core adds the verb (currently
+// only agents can stop their own session; no external caller verb exists).
+export const POST: RequestHandler = async () => {
+  throw error(501, 'Session-scoped stop is not yet supported by NanoClaw core');
 };
