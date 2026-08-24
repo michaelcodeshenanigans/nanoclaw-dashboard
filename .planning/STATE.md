@@ -5,10 +5,10 @@
 
 ## Current Position
 
-Phase: 22 — Annotations
+Phase: 21 — Host & Container Health Strip
 Plan: —
 Status: Complete
-Last activity: 2026-08-24 — Phase 22 complete; Tier 3 schema/ncl facts verified by Yoni
+Last activity: 2026-08-24 — Phase 21 complete (host resource strip on Overview)
 
 ## Milestone
 
@@ -39,7 +39,7 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 18 | Run Now + Task Run History | Complete | 3 |
 | 19 | Steer from Dashboard | Stub (pending core) | 1 |
 | 20 | Failure Triage | Partial (drill-down parked Langfuse) | 3 |
-| 21 | Host & Container Health Strip | Not started | 2 |
+| 21 | Host & Container Health Strip | Complete | 2 |
 | 22 | Annotations | Complete | 2 |
 | 23 | Error Digest | Not started | 2 |
 | 24 | Skills & MCP Server Inventory | Not started | 2 |

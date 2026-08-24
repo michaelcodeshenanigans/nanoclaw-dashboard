@@ -17,6 +17,13 @@ export interface HealthStatus {
   ts: string;
 }
 
+export interface HostHealth {
+  cpu_pct: number;
+  mem: { used_mb: number; total_mb: number; pct: number };
+  disk: { used_gb: number; total_gb: number; pct: number };
+  ts: string;
+}
+
 export interface Group {
   id: string;
   name: string;

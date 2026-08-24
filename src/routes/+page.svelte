@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createPoller, type PollState } from '$lib/poll';
-  import type { HealthStatus, HealthStats, KpiStats, MonitorAlert } from '$lib/types';
+  import type { HealthStatus, HealthStats, KpiStats, MonitorAlert, HostHealth } from '$lib/types';
 
   let health = $state<PollState<HealthStatus>>({ data: null, loading: true, error: null, lastUpdated: null });
   let stats = $state<PollState<HealthStats>>({ data: null, loading: true, error: null, lastUpdated: null });
@@ -65,6 +65,33 @@
     if (s < 60) return `${Math.round(s)}s`;
     if (s < 3600) return `${Math.round(s / 60)}m`;
     return `${(s / 3600).toFixed(1)}h`;
+  }
+
+  let hostHealth = $state<PollState<HostHealth>>({ data: null, loading: true, error: null, lastUpdated: null });
+
+  $effect(() => {
+    const p = createPoller<HostHealth>(
+      (signal) => fetch('/api/health/host', { signal }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+      10000,
+      s => { hostHealth = s; }
+    );
+    return () => p.stop();
+  });
+
+  function resourceColor(pct: number, diskMode = false): string {
+    const warn = diskMode ? 70 : 60;
+    const crit = diskMode ? 85 : 80;
+    if (pct >= crit) return 'text-red-400';
+    if (pct >= warn) return 'text-yellow-400';
+    return 'text-green-400';
+  }
+
+  function barColor(pct: number, diskMode = false): string {
+    const warn = diskMode ? 70 : 60;
+    const crit = diskMode ? 85 : 80;
+    if (pct >= crit) return 'bg-red-500';
+    if (pct >= warn) return 'bg-yellow-500';
+    return 'bg-green-500';
   }
 
   let activeAlerts = $state<MonitorAlert[]>([]);
@@ -223,6 +250,56 @@
           </div>
 
         </div>
+      {/if}
+    </div>
+
+    <!-- Host Resource Strip -->
+    <div class="mb-6 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-5 py-4">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-xs font-medium uppercase tracking-wide text-[hsl(var(--muted-foreground))]">Host resources</p>
+        {#if hostHealth.lastUpdated}
+          <p class="text-xs text-[hsl(var(--muted-foreground))]">Updated {hostHealth.lastUpdated.toLocaleTimeString()}</p>
+        {/if}
+      </div>
+      {#if hostHealth.loading && !hostHealth.data}
+        <p class="text-xs text-[hsl(var(--muted-foreground))]">Sampling…</p>
+      {:else if hostHealth.error || !hostHealth.data}
+        <p class="text-xs text-red-400">Unavailable</p>
+      {:else}
+        {@const h = hostHealth.data}
+        <div class="grid grid-cols-3 gap-4">
+          <!-- CPU -->
+          <div>
+            <div class="flex items-baseline justify-between mb-1">
+              <span class="text-xs text-[hsl(var(--muted-foreground))]">CPU</span>
+              <span class="text-sm font-semibold {resourceColor(h.cpu_pct)}">{h.cpu_pct.toFixed(1)}%</span>
+            </div>
+            <div class="h-1.5 w-full rounded-full bg-[hsl(var(--muted))]">
+              <div class="h-1.5 rounded-full transition-all {barColor(h.cpu_pct)}" style="width: {Math.min(h.cpu_pct, 100)}%"></div>
+            </div>
+          </div>
+          <!-- Memory -->
+          <div>
+            <div class="flex items-baseline justify-between mb-1">
+              <span class="text-xs text-[hsl(var(--muted-foreground))]">Memory</span>
+              <span class="text-sm font-semibold {resourceColor(h.mem.pct)}">{h.mem.pct.toFixed(1)}% <span class="text-xs font-normal text-[hsl(var(--muted-foreground))]">{h.mem.used_mb >= 1024 ? (h.mem.used_mb / 1024).toFixed(1) + 'G' : h.mem.used_mb + 'M'} / {h.mem.total_mb >= 1024 ? (h.mem.total_mb / 1024).toFixed(0) + 'G' : h.mem.total_mb + 'M'}</span></span>
+            </div>
+            <div class="h-1.5 w-full rounded-full bg-[hsl(var(--muted))]">
+              <div class="h-1.5 rounded-full transition-all {barColor(h.mem.pct)}" style="width: {Math.min(h.mem.pct, 100)}%"></div>
+            </div>
+          </div>
+          <!-- Disk -->
+          <div>
+            <div class="flex items-baseline justify-between mb-1">
+              <span class="text-xs text-[hsl(var(--muted-foreground))]">Disk</span>
+              <span class="text-sm font-semibold {resourceColor(h.disk.pct, true)}">{h.disk.pct}% <span class="text-xs font-normal text-[hsl(var(--muted-foreground))]">{h.disk.used_gb}G / {h.disk.total_gb}G</span></span>
+            </div>
+            <div class="h-1.5 w-full rounded-full bg-[hsl(var(--muted))]">
+              <div class="h-1.5 rounded-full transition-all {barColor(h.disk.pct, true)}" style="width: {Math.min(h.disk.pct, 100)}%"></div>
+            </div>
+          </div>
+        </div>
+        <p class="mt-2 text-[10px] text-[hsl(var(--muted-foreground))]">Host-aggregate totals — not per-container (no docker.sock)</p>
       {/if}
     </div>
 

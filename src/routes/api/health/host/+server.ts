@@ -1,0 +1,13 @@
+import { json } from '@sveltejs/kit';
+import { readCpuPct, readMemory, readDisk } from '$lib/server/host-health';
+import type { HostHealth } from '$lib/types';
+
+export const GET = async (): Promise<Response> => {
+  try {
+    const [cpu_pct, mem, disk] = await Promise.all([readCpuPct(), readMemory(), readDisk()]);
+    const body: HostHealth = { cpu_pct, mem, disk, ts: new Date().toISOString() };
+    return json(body);
+  } catch (err) {
+    return json({ error: String(err) }, { status: 500 });
+  }
+};
