@@ -5,10 +5,10 @@
 
 ## Current Position
 
-Phase: 21 — Host & Container Health Strip
+Phase: 24 — Skills & MCP Server Inventory
 Plan: —
 Status: Complete
-Last activity: 2026-08-24 — Phase 21 complete (host resource strip on Overview)
+Last activity: 2026-08-24 — Phase 24 complete (config inventory page + Group Detail config section)
 
 ## Milestone
 
@@ -42,7 +42,7 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 21 | Host & Container Health Strip | Complete | 2 |
 | 22 | Annotations | Complete | 2 |
 | 23 | Error Digest | Not started | 2 |
-| 24 | Skills & MCP Server Inventory | Not started | 2 |
+| 24 | Skills & MCP Server Inventory | Complete | 2 |
 | 25 | Connections Health | Not started | 2 |
 | 26 | Instructions/Memory Version History | Parked (no version data in core) | 3 |
 | 27 | Roles + Dashboard Audit Log | Not started | 2 |

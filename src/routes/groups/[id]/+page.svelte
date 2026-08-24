@@ -6,7 +6,8 @@
     GroupDetail,
     Member,
     Destination,
-    SessionSummary
+    SessionSummary,
+    GroupConfig
   } from '$lib/types';
 
   const id = $page.params.id;
@@ -186,6 +187,88 @@
       return formatDistanceToNow(new Date(ts), { addSuffix: true });
     } catch {
       return ts;
+    }
+  }
+
+  // Config (skills + MCP servers)
+  let config = $state<GroupConfig | null>(null);
+  let configLoading = $state(true);
+  let pendingRestart = $state(false);
+
+  // MCP add form
+  let mcpAddName = $state('');
+  let mcpAddType = $state<'stdio' | 'http'>('stdio');
+  let mcpAddCommand = $state('');
+  let mcpAddUrl = $state('');
+  let mcpAddLoading = $state(false);
+  let mcpAddFeedback = $state('');
+  let mcpRemoveLoading = $state<string | null>(null);
+  let mcpFeedback = $state('');
+
+  $effect(() => {
+    fetch(`/api/groups/${id}/config`)
+      .then(r => r.ok ? r.json() : null)
+      .then((d: GroupConfig | null) => { config = d; })
+      .catch(() => {})
+      .finally(() => { configLoading = false; });
+  });
+
+  async function handleAddMcp() {
+    const name = mcpAddName.trim();
+    const val = mcpAddType === 'stdio' ? mcpAddCommand.trim() : mcpAddUrl.trim();
+    if (!name || !val) return;
+    mcpAddLoading = true;
+    mcpAddFeedback = '';
+    try {
+      const body: Record<string, string> = { name };
+      if (mcpAddType === 'stdio') body.command = val;
+      else body.url = val;
+      const res = await fetch(`/api/groups/${id}/config/mcp-servers`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok || res.status === 202) {
+        mcpAddName = ''; mcpAddCommand = ''; mcpAddUrl = '';
+        pendingRestart = true;
+        showFeedback(v => { mcpAddFeedback = v; }, res.status === 202 ? 'Pending approval' : 'Added — restart to apply');
+        // Refresh config
+        const updated = await fetch(`/api/groups/${id}/config`).then(r => r.ok ? r.json() : null).catch(() => null);
+        if (updated) config = updated;
+      } else {
+        const b = await res.json().catch(() => ({}));
+        showFeedback(v => { mcpAddFeedback = v; }, `Error: ${(b as { message?: string }).message ?? res.statusText}`);
+      }
+    } catch (err) {
+      showFeedback(v => { mcpAddFeedback = v; }, `Error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      mcpAddLoading = false;
+    }
+  }
+
+  async function handleRemoveMcp(name: string) {
+    if (!confirm(`Remove MCP server "${name}"? A restart will be required to apply.`)) return;
+    mcpRemoveLoading = name;
+    mcpFeedback = '';
+    try {
+      const res = await fetch(`/api/groups/${id}/config/mcp-servers`, {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (res.ok || res.status === 202) {
+        pendingRestart = true;
+        showFeedback(v => { mcpFeedback = v; }, res.status === 202 ? 'Pending approval' : 'Removed — restart to apply');
+        const updated = await fetch(`/api/groups/${id}/config`).then(r => r.ok ? r.json() : null).catch(() => null);
+        if (updated) config = updated;
+      } else {
+        const b = await res.json().catch(() => ({}));
+        showFeedback(v => { mcpFeedback = v; }, `Error: ${(b as { message?: string }).message ?? res.statusText}`);
+      }
+    } catch (err) {
+      showFeedback(v => { mcpFeedback = v; }, `Error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      mcpRemoveLoading = null;
     }
   }
 </script>
@@ -475,6 +558,138 @@
           {/each}
         </tbody>
       </table>
+    {/if}
+  </section>
+
+  <!-- Configuration card -->
+  <section class="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 text-[hsl(var(--card-foreground))]">
+    <h2 class="mb-4 text-lg font-semibold">Configuration</h2>
+    {#if configLoading}
+      <p class="text-sm text-[hsl(var(--muted-foreground))]">Loading…</p>
+    {:else if !config}
+      <p class="text-sm text-[hsl(var(--muted-foreground))]">No config found for this group.</p>
+    {:else}
+      <!-- Restart required banner -->
+      {#if pendingRestart}
+        <div class="mb-4 flex items-center justify-between gap-4 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-4 py-3">
+          <p class="text-sm text-yellow-300">Config changed — restart required for changes to take effect.</p>
+          <button
+            onclick={handleRestart}
+            disabled={restartLoading}
+            class="shrink-0 rounded-md bg-yellow-500/20 px-3 py-1.5 text-sm text-yellow-300 hover:bg-yellow-500/30 disabled:opacity-50"
+          >
+            {restartLoading ? 'Restarting…' : 'Restart now'}
+          </button>
+        </div>
+      {/if}
+
+      <!-- Skills (read-only) -->
+      <div class="mb-6">
+        <h3 class="mb-2 text-sm font-medium">Skills <span class="ml-1 text-xs text-[hsl(var(--muted-foreground))]">(read-only — edit via config files)</span></h3>
+        {#if config.skills === 'all'}
+          <span class="rounded-full bg-[hsl(var(--accent))] px-2 py-0.5 text-xs text-[hsl(var(--accent-foreground))]">All skills</span>
+        {:else if Array.isArray(config.skills) && config.skills.length === 0}
+          <span class="text-sm text-[hsl(var(--muted-foreground))]">None configured</span>
+        {:else if Array.isArray(config.skills)}
+          <div class="flex flex-wrap gap-1">
+            {#each config.skills as skill}
+              <span class="rounded-full bg-[hsl(var(--muted))] px-2 py-0.5 text-xs text-[hsl(var(--foreground))]">{skill}</span>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <!-- MCP Servers -->
+      <div>
+        <h3 class="mb-2 text-sm font-medium">MCP Servers</h3>
+        {#if mcpFeedback}
+          <p class="mb-2 text-sm {mcpFeedback.startsWith('Error') ? 'text-red-400' : 'text-green-400'}">{mcpFeedback}</p>
+        {/if}
+
+        {#if Object.keys(config.mcp_servers).length === 0}
+          <p class="mb-4 text-sm text-[hsl(var(--muted-foreground))]">No MCP servers configured.</p>
+        {:else}
+          <div class="mb-4 flex flex-col gap-2">
+            {#each Object.entries(config.mcp_servers) as [name, cfg]}
+              <div class="flex items-center gap-3 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2">
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium">{name}</p>
+                  <p class="text-xs text-[hsl(var(--muted-foreground))] font-mono truncate">
+                    {cfg.command ? cfg.command : cfg.url ? cfg.url : 'no command/url'}
+                  </p>
+                </div>
+                <button
+                  onclick={() => handleRemoveMcp(name)}
+                  disabled={mcpRemoveLoading === name}
+                  class="shrink-0 rounded px-2 py-1 text-xs text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-colors"
+                >
+                  {mcpRemoveLoading === name ? '…' : 'Remove'}
+                </button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+        <!-- Add MCP server form -->
+        <details class="rounded-md border border-[hsl(var(--border))]">
+          <summary class="cursor-pointer px-4 py-2 text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] select-none">
+            + Add MCP server
+          </summary>
+          <div class="border-t border-[hsl(var(--border))] p-4 flex flex-col gap-3">
+            <p class="text-xs text-[hsl(var(--muted-foreground))]">
+              Changes take effect after restarting the group.
+            </p>
+            <label class="flex flex-col gap-1 text-sm">
+              <span class="text-xs uppercase tracking-wide text-[hsl(var(--muted-foreground))]">Server name</span>
+              <input
+                type="text"
+                bind:value={mcpAddName}
+                placeholder="e.g. my-tool-server"
+                class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-1.5 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
+              />
+            </label>
+            <div class="flex gap-4 text-sm">
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" bind:group={mcpAddType} value="stdio" class="accent-[hsl(var(--accent-foreground))]" /> stdio
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" bind:group={mcpAddType} value="http" class="accent-[hsl(var(--accent-foreground))]" /> HTTP
+              </label>
+            </div>
+            {#if mcpAddType === 'stdio'}
+              <label class="flex flex-col gap-1 text-sm">
+                <span class="text-xs uppercase tracking-wide text-[hsl(var(--muted-foreground))]">Command</span>
+                <input
+                  type="text"
+                  bind:value={mcpAddCommand}
+                  placeholder="e.g. /usr/local/bin/my-mcp-server"
+                  class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-1.5 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] font-mono"
+                />
+              </label>
+            {:else}
+              <label class="flex flex-col gap-1 text-sm">
+                <span class="text-xs uppercase tracking-wide text-[hsl(var(--muted-foreground))]">URL</span>
+                <input
+                  type="url"
+                  bind:value={mcpAddUrl}
+                  placeholder="https://my-mcp-server.example.com"
+                  class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-1.5 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] font-mono"
+                />
+              </label>
+            {/if}
+            {#if mcpAddFeedback}
+              <p class="text-sm {mcpAddFeedback.startsWith('Error') ? 'text-red-400' : 'text-green-400'}">{mcpAddFeedback}</p>
+            {/if}
+            <button
+              onclick={handleAddMcp}
+              disabled={mcpAddLoading || !mcpAddName.trim() || (mcpAddType === 'stdio' ? !mcpAddCommand.trim() : !mcpAddUrl.trim())}
+              class="self-start rounded-md bg-[hsl(var(--accent))] px-4 py-2 text-sm font-medium text-[hsl(var(--accent-foreground))] hover:opacity-90 disabled:opacity-40 transition-opacity"
+            >
+              {mcpAddLoading ? 'Adding…' : 'Add server'}
+            </button>
+          </div>
+        </details>
+      </div>
     {/if}
   </section>
 </div>

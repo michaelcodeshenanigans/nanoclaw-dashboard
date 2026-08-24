@@ -17,6 +17,21 @@ export interface HealthStatus {
   ts: string;
 }
 
+export interface McpServerConfig {
+  command?: string;
+  url?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  [key: string]: unknown;
+}
+
+export interface GroupConfig {
+  agent_group_id: string;
+  group_name: string;
+  skills: 'all' | string[];
+  mcp_servers: Record<string, McpServerConfig>;
+}
+
 export interface HostHealth {
   cpu_pct: number;
   mem: { used_mb: number; total_mb: number; pct: number };

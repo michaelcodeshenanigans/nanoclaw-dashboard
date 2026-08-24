@@ -12,7 +12,8 @@
     { href: '/approvals', label: 'Approvals' },
     { href: '/dropped', label: 'Dropped' },
     { href: '/tasks', label: 'Tasks' },
-    { href: '/flagged', label: 'Flagged' }
+    { href: '/flagged', label: 'Flagged' },
+    { href: '/config', label: 'Config' }
   ] as const;
 
   let { children } = $props();

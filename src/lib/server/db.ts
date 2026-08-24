@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource, TriageItem, TaskRun, FailedTaskSummary } from '$lib/types';
+import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource, TriageItem, TaskRun, FailedTaskSummary, GroupConfig, McpServerConfig } from '$lib/types';
 
 type BetterDB = InstanceType<typeof Database>;
 
@@ -811,4 +811,51 @@ export function getFailedTaskSummaries(): FailedTaskSummary[] {
     if (!b.last_failure) return -1;
     return b.last_failure.localeCompare(a.last_failure);
   });
+}
+
+// ─── Group Config (skills + MCP servers) ────────────────────────────────────
+
+interface ContainerConfigRow {
+  agent_group_id: string;
+  group_name: string;
+  skills: string | null;
+  mcp_servers: string | null;
+}
+
+function parseGroupConfigRow(row: ContainerConfigRow): GroupConfig {
+  let skills: 'all' | string[];
+  try {
+    const v = JSON.parse(row.skills ?? '"all"');
+    skills = v === 'all' ? 'all' : Array.isArray(v) ? (v as unknown[]).filter(s => typeof s === 'string') as string[] : 'all';
+  } catch { skills = 'all'; }
+
+  let mcp_servers: Record<string, McpServerConfig>;
+  try {
+    const v = JSON.parse(row.mcp_servers ?? '{}');
+    mcp_servers = (v && typeof v === 'object' && !Array.isArray(v)) ? v as Record<string, McpServerConfig> : {};
+  } catch { mcp_servers = {}; }
+
+  return { agent_group_id: row.agent_group_id, group_name: row.group_name, skills, mcp_servers };
+}
+
+export function getGroupConfig(agentGroupId: string): GroupConfig | null {
+  const row = db.prepare(`
+    SELECT g.id AS agent_group_id, g.name AS group_name,
+           cc.skills, cc.mcp_servers
+    FROM agent_groups g
+    LEFT JOIN container_configs cc ON cc.agent_group_id = g.id
+    WHERE g.id = ?
+  `).get(agentGroupId) as ContainerConfigRow | undefined;
+  return row ? parseGroupConfigRow(row) : null;
+}
+
+export function getAllGroupConfigs(): GroupConfig[] {
+  const rows = db.prepare(`
+    SELECT g.id AS agent_group_id, g.name AS group_name,
+           cc.skills, cc.mcp_servers
+    FROM agent_groups g
+    LEFT JOIN container_configs cc ON cc.agent_group_id = g.id
+    ORDER BY g.name
+  `).all() as ContainerConfigRow[];
+  return rows.map(parseGroupConfigRow);
 }
