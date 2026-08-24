@@ -29,26 +29,26 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 9 | Mobile Polish — Tables, Filters, Touch Targets | Complete | 3 |
 | 10A | NanoClaw Core — LLM Call Capture | Parked (Langfuse) | 2 |
 | 10B | Dashboard — LLM Call Viewer | Parked (Langfuse) | 2 |
-| 11 | Overview KPI Banner | Not started | — |
-| 12 | Unified Run History | Not started | — |
-| 13 | Triage Inbox | Not started | — |
-| 14 | Chat-pushed Alerts/Monitors | Not started | — |
-| 15 | Cost & Token Command Center | Not started | — |
-| 16 | Emergency Stop/Pause | Not started | — |
-| 17 | Run Now + Task Run History | Not started | — |
-| 18 | Steer from Dashboard | Not started | — |
-| 19 | Failure Triage | Not started | — |
-| 20 | Session Trace View | Not started | — |
-| 21 | Host & Container Health Strip | Not started | — |
-| 22 | Annotations | Not started | — |
-| 23 | Error Digest | Not started | — |
-| 24 | Skills & MCP Server Inventory | Not started | — |
-| 25 | Connections Health | Not started | — |
-| 26 | Instructions/Memory Version History | Not started | — |
-| 27 | Roles + Dashboard Audit Log | Not started | — |
-| 28 | Global FTS5 Search | Not started | — |
-| 29 | Retention & Redaction Settings | Not started | — |
-| 30 | Delta View | Not started | — |
+| 11 | Overview KPI Banner | Not started | 2 |
+| 12 | Unified Run History | Not started | 2 |
+| 13 | Triage Inbox | Not started | 3 |
+| 14 | Chat-pushed Alerts/Monitors | Not started | 4 |
+| 15 | Cost & Token Command Center | Not started | 3 |
+| 16 | Emergency Stop/Pause | Not started | 2 |
+| 17 | Run Now + Task Run History | Not started | 3 |
+| 18 | Steer from Dashboard | Not started | 1 |
+| 19 | Failure Triage | Not started | 3 |
+| 20 | Session Trace View | Not started | 1 |
+| 21 | Host & Container Health Strip | Not started | 2 |
+| 22 | Annotations | Not started | 2 |
+| 23 | Error Digest | Not started | 2 |
+| 24 | Skills & MCP Server Inventory | Not started | 2 |
+| 25 | Connections Health | Not started | 2 |
+| 26 | Instructions/Memory Version History | Not started | 3 |
+| 27 | Roles + Dashboard Audit Log | Not started | 2 |
+| 28 | Global FTS5 Search | Not started | 1 |
+| 29 | Retention & Redaction Settings | Not started | 2 |
+| 30 | Delta View | Not started | 1 |
 
 ## Project Reference
 
