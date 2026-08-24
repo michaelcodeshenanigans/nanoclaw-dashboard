@@ -5,10 +5,10 @@
 
 ## Current Position
 
-Phase: 17 — Emergency Stop/Pause
+Phase: 18 — Run Now + Task Run History
 Plan: —
 Status: Complete
-Last activity: 2026-08-24 — Phase 17 (Emergency Stop/Pause) complete
+Last activity: 2026-08-24 — Phase 18 (Run Now + Task Run History) complete
 
 ## Milestone
 
@@ -36,7 +36,7 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 15 | Cost & Token Command Center | Parked (Langfuse) | 3 |
 | 16 | Session Trace View | Parked (Langfuse) | 1 |
 | 17 | Emergency Stop/Pause | Complete | 2 |
-| 18 | Run Now + Task Run History | Not started | 3 |
+| 18 | Run Now + Task Run History | Complete | 3 |
 | 19 | Steer from Dashboard | Not started | 1 |
 | 20 | Failure Triage | Not started | 3 |
 | 21 | Host & Container Health Strip | Not started | 2 |

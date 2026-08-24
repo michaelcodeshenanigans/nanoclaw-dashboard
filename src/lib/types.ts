@@ -134,6 +134,18 @@ export interface ScheduledTask {
   session_id: string;
 }
 
+export interface TaskRun {
+  seq: number;
+  status: 'completed' | 'failed' | 'processing';
+  process_after: string | null;
+  trigger: 'scheduled' | 'manual';
+}
+
+export interface TaskHistoryResponse {
+  runs: TaskRun[];
+  flapping: boolean;
+}
+
 export interface LlmCall {
   id: number;
   turn_seq: number;

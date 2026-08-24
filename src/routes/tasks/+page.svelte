@@ -6,6 +6,25 @@
   let tasks = $state<PollState<ScheduledTask[]>>({ data: null, loading: true, error: null, lastUpdated: null });
   let expandedScript = $state<string | null>(null);
   let expandedPrompt = $state<string | null>(null);
+  let runningTask = $state<string | null>(null);
+  let runFeedback = $state<Map<string, string>>(new Map());
+
+  async function runNow(task: ScheduledTask) {
+    if (!confirm(`Run "${task.prompt.slice(0, 60)}…" now?`)) return;
+    runningTask = task.id;
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/run`, { method: 'POST' });
+      const msg = res.status === 202 ? 'Queued — pending approval' : res.ok ? 'Queued' : `Error ${res.status}`;
+      runFeedback = new Map(runFeedback).set(task.id, msg);
+      setTimeout(() => {
+        runFeedback = new Map([...runFeedback].filter(([k]) => k !== task.id));
+      }, 6000);
+    } catch {
+      runFeedback = new Map(runFeedback).set(task.id, 'Error');
+    } finally {
+      runningTask = null;
+    }
+  }
 
   $effect(() => {
     const p = createPoller<ScheduledTask[]>(
@@ -70,6 +89,7 @@
             <th class="text-left px-4 py-3 font-medium text-[hsl(var(--muted-foreground))]">Next run</th>
             <th class="text-left px-4 py-3 font-medium text-[hsl(var(--muted-foreground))]">Status</th>
             <th class="text-left px-4 py-3 font-medium text-[hsl(var(--muted-foreground))]">Script</th>
+            <th class="px-4 py-3"></th>
           </tr>
         </thead>
         <tbody class="divide-y divide-[hsl(var(--border))]">
@@ -123,17 +143,39 @@
                   <span class="text-xs text-[hsl(var(--muted-foreground))]">none</span>
                 {/if}
               </td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3 justify-end">
+                  {#if runFeedback.get(t.id)}
+                    <span class="text-xs {runFeedback.get(t.id)?.startsWith('Error') ? 'text-red-400' : 'text-green-400'}">
+                      {runFeedback.get(t.id)}
+                    </span>
+                  {/if}
+                  <button
+                    onclick={() => runNow(t)}
+                    disabled={runningTask === t.id}
+                    class="rounded px-2 py-1 text-xs font-medium bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  >
+                    {runningTask === t.id ? 'Queuing…' : 'Run now'}
+                  </button>
+                  <a
+                    href={`/tasks/${t.id}?groupId=${encodeURIComponent(t.agent_group_id)}&sessionId=${encodeURIComponent(t.session_id)}&groupName=${encodeURIComponent(t.group_name)}`}
+                    class="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+                  >
+                    History →
+                  </a>
+                </div>
+              </td>
             </tr>
             {#if expandedPrompt === t.id}
               <tr>
-                <td colspan="6" class="px-4 pb-4">
+                <td colspan="7" class="px-4 pb-4">
                   <pre class="text-xs bg-[hsl(var(--muted))] border border-[hsl(var(--border))] rounded p-3 overflow-x-auto whitespace-pre-wrap break-words max-h-48 overflow-y-auto">{t.prompt}</pre>
                 </td>
               </tr>
             {/if}
             {#if expandedScript === t.id && t.script}
               <tr>
-                <td colspan="6" class="px-4 pb-4">
+                <td colspan="7" class="px-4 pb-4">
                   <pre class="text-xs bg-[hsl(var(--muted))] border border-[hsl(var(--border))] rounded p-3 overflow-x-auto whitespace-pre-wrap break-all">{t.script}</pre>
                 </td>
               </tr>

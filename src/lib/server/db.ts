@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource, TriageItem } from '$lib/types';
+import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource, TriageItem, TaskRun } from '$lib/types';
 
 type BetterDB = InstanceType<typeof Database>;
 
@@ -718,4 +718,38 @@ export function getScheduledTasks(): ScheduledTask[] {
   }
 
   return results;
+}
+
+export function getTaskHistory(agentGroupId: string, sessionId: string, seriesId: string): TaskRun[] {
+  try {
+    const { inbound } = getSessionDbPair(agentGroupId, sessionId);
+    if (!inbound) return [];
+    const rows = inbound.prepare(`
+      SELECT seq, status, process_after, recurrence
+      FROM messages_in
+      WHERE kind = 'task' AND series_id = ? AND status IN ('completed', 'failed', 'processing')
+      ORDER BY seq DESC
+      LIMIT 50
+    `).all(seriesId) as Array<{ seq: number; status: string; process_after: string | null; recurrence: string | null }>;
+    return rows.map(r => ({
+      seq: r.seq,
+      status: r.status as TaskRun['status'],
+      process_after: r.process_after,
+      trigger: r.recurrence === null ? 'manual' as const : 'scheduled' as const,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+const FLAP_THRESHOLD = 3;
+
+export function isFlapping(runs: TaskRun[]): boolean {
+  const settled = runs.filter(r => r.status !== 'processing');
+  if (settled.length < 2) return false;
+  let transitions = 0;
+  for (let i = 0; i < settled.length - 1; i++) {
+    if (settled[i].status !== settled[i + 1].status) transitions++;
+  }
+  return transitions >= FLAP_THRESHOLD;
 }
