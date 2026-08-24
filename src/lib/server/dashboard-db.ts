@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { Monitor, MonitorAlert, MonitorType } from '$lib/types';
+import type { Monitor, MonitorAlert, MonitorType, Annotation } from '$lib/types';
 
 type DB = InstanceType<typeof Database>;
 
@@ -49,6 +49,21 @@ function getDashboardDb(): DB | null {
         push_status TEXT NOT NULL DEFAULT 'skipped',
         acknowledged INTEGER NOT NULL DEFAULT 0
       );
+      CREATE TABLE IF NOT EXISTS annotations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        target_type TEXT NOT NULL CHECK(target_type IN ('session', 'message')),
+        target_id TEXT NOT NULL,
+        session_id TEXT,
+        display_label TEXT,
+        bookmarked INTEGER NOT NULL DEFAULT 0,
+        rating INTEGER CHECK(rating IN (-1, 0, 1)),
+        tags TEXT NOT NULL DEFAULT '[]',
+        note TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_annotations_target
+        ON annotations(target_type, target_id);
     `);
     // Seed default monitors on first boot
     _dashboardDb.exec(`
@@ -209,4 +224,136 @@ export function getTriageState(): TriageState {
     snoozed: new Set(snoozedRows.map(r => r.item_key)),
     dismissed: new Set(dismissedRows.map(r => r.item_key))
   };
+}
+
+// ─── Annotations ────────────────────────────────────────────────────────────
+
+interface AnnotationRow {
+  id: number;
+  target_type: string;
+  target_id: string;
+  session_id: string | null;
+  display_label: string | null;
+  bookmarked: number;
+  rating: number | null;
+  tags: string;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function mapAnnotationRow(r: AnnotationRow): Annotation {
+  return {
+    id: r.id,
+    target_type: r.target_type as Annotation['target_type'],
+    target_id: r.target_id,
+    session_id: r.session_id,
+    display_label: r.display_label,
+    bookmarked: r.bookmarked === 1,
+    rating: r.rating as Annotation['rating'],
+    tags: JSON.parse(r.tags) as string[],
+    note: r.note,
+    created_at: r.created_at,
+    updated_at: r.updated_at,
+  };
+}
+
+export function getAnnotation(targetType: string, targetId: string): Annotation | null {
+  const db = getDashboardDb();
+  if (!db) return null;
+  const row = db.prepare(
+    'SELECT * FROM annotations WHERE target_type = ? AND target_id = ?'
+  ).get(targetType, targetId) as AnnotationRow | undefined;
+  return row ? mapAnnotationRow(row) : null;
+}
+
+export function upsertAnnotation(data: {
+  target_type: string;
+  target_id: string;
+  session_id?: string | null;
+  display_label?: string | null;
+  bookmarked?: boolean;
+  rating?: number | null;
+  tags?: string[];
+  note?: string | null;
+}): Annotation | null {
+  const db = getDashboardDb();
+  if (!db) return null;
+
+  const existing = getAnnotation(data.target_type, data.target_id);
+  if (existing) {
+    db.prepare(`
+      UPDATE annotations SET
+        bookmarked = COALESCE(?, bookmarked),
+        rating = ?,
+        tags = COALESCE(?, tags),
+        note = ?,
+        display_label = COALESCE(?, display_label),
+        updated_at = datetime('now')
+      WHERE target_type = ? AND target_id = ?
+    `).run(
+      data.bookmarked !== undefined ? (data.bookmarked ? 1 : 0) : null,
+      data.rating !== undefined ? data.rating : existing.rating,
+      data.tags !== undefined ? JSON.stringify(data.tags) : null,
+      data.note !== undefined ? data.note : existing.note,
+      data.display_label ?? null,
+      data.target_type,
+      data.target_id
+    );
+  } else {
+    db.prepare(`
+      INSERT INTO annotations (target_type, target_id, session_id, display_label, bookmarked, rating, tags, note)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      data.target_type,
+      data.target_id,
+      data.session_id ?? null,
+      data.display_label ?? null,
+      data.bookmarked ? 1 : 0,
+      data.rating ?? null,
+      JSON.stringify(data.tags ?? []),
+      data.note ?? null
+    );
+  }
+  return getAnnotation(data.target_type, data.target_id);
+}
+
+export function deleteAnnotation(targetType: string, targetId: string): void {
+  const db = getDashboardDb();
+  if (!db) return;
+  db.prepare('DELETE FROM annotations WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
+}
+
+export function getMessageAnnotationsForSession(sessionId: string): Record<string, Annotation> {
+  const db = getDashboardDb();
+  if (!db) return {};
+  const rows = db.prepare(
+    `SELECT * FROM annotations WHERE target_type = 'message' AND session_id = ?`
+  ).all(sessionId) as AnnotationRow[];
+  const result: Record<string, Annotation> = {};
+  for (const row of rows) result[row.target_id] = mapAnnotationRow(row);
+  return result;
+}
+
+export function getFlaggedAnnotations(filter?: { tag?: string; rating?: number }): Annotation[] {
+  const db = getDashboardDb();
+  if (!db) return [];
+
+  let rows = db.prepare(
+    `SELECT * FROM annotations
+     WHERE bookmarked = 1 OR rating IS NOT NULL OR (note IS NOT NULL AND note != '') OR tags != '[]'
+     ORDER BY updated_at DESC`
+  ).all() as AnnotationRow[];
+
+  let annotations = rows.map(mapAnnotationRow);
+
+  if (filter?.tag) {
+    const tag = filter.tag.toLowerCase();
+    annotations = annotations.filter(a => a.tags.some(t => t.toLowerCase() === tag));
+  }
+  if (filter?.rating !== undefined) {
+    annotations = annotations.filter(a => a.rating === filter.rating);
+  }
+
+  return annotations;
 }

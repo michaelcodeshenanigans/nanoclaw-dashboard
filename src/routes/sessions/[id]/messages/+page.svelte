@@ -2,7 +2,7 @@
   import { page } from '$app/stores';
   import { createPoller, type PollState } from '$lib/poll';
   import { format } from 'date-fns';
-  import type { Message } from '$lib/types';
+  import type { Message, Annotation } from '$lib/types';
 
   const id = $page.params.id;
 
@@ -46,6 +46,34 @@
   function truncate(s: string, n = 200): string {
     if (s.length <= n) return s;
     return s.slice(0, n) + '…';
+  }
+
+  let msgAnnotations = $state<Record<string, Annotation>>({});
+
+  $effect(() => {
+    fetch(`/api/sessions/${id}/message-annotations`)
+      .then(r => r.ok ? r.json() : {})
+      .then((data: Record<string, Annotation>) => { msgAnnotations = data; })
+      .catch(() => {});
+  });
+
+  async function toggleMsgBookmark(m: Message) {
+    const targetId = `${id}:${m.id}`;
+    const current = msgAnnotations[targetId];
+    const bookmarked = !(current?.bookmarked ?? false);
+    // Optimistic update
+    msgAnnotations = { ...msgAnnotations, [targetId]: { ...(current ?? { id: 0, target_type: 'message', target_id: targetId, session_id: id, display_label: null, rating: null, tags: [], note: null, created_at: '', updated_at: '' }), bookmarked } };
+    try {
+      const res = await fetch('/api/annotations', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ target_type: 'message', target_id: targetId, session_id: id, bookmarked }),
+      });
+      if (res.ok) {
+        const updated = await res.json() as Annotation;
+        msgAnnotations = { ...msgAnnotations, [targetId]: updated };
+      }
+    } catch { /* leave optimistic */ }
   }
 
   function formatTs(ts: string): string {
@@ -164,6 +192,7 @@
               <th class="py-2 pr-4 font-medium whitespace-nowrap">Kind</th>
               <th class="py-2 pr-4 font-medium whitespace-nowrap">Channel</th>
               <th class="py-2 font-medium">Content</th>
+              <th class="py-2 pl-4"></th>
             </tr>
           </thead>
           <tbody>
@@ -183,6 +212,13 @@
                 </td>
                 <td class="py-2 text-xs break-all">
                   <span title={m.content}>{truncate(m.content)}</span>
+                </td>
+                <td class="py-2 pl-4">
+                  <button
+                    onclick={() => toggleMsgBookmark(m)}
+                    class="text-sm leading-none {msgAnnotations[`${id}:${m.id}`]?.bookmarked ? 'text-yellow-400' : 'text-[hsl(var(--muted-foreground))] hover:text-yellow-400'}"
+                    title="Bookmark"
+                  >{msgAnnotations[`${id}:${m.id}`]?.bookmarked ? '★' : '☆'}</button>
                 </td>
               </tr>
             {/each}

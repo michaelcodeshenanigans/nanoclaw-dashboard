@@ -2,11 +2,50 @@
   import { page } from '$app/stores';
   import { createPoller, type PollState } from '$lib/poll';
   import { formatDistanceToNow, format } from 'date-fns';
-  import type { SessionDetail } from '$lib/types';
+  import type { SessionDetail, Annotation } from '$lib/types';
 
   const id = $page.params.id;
 
   let session = $state<PollState<SessionDetail | null>>({ data: null, loading: true, error: null, lastUpdated: null });
+
+  // Annotation state
+  let annotation = $state<Annotation | null>(null);
+  let annotationLoaded = $state(false);
+  let annotationSaving = $state(false);
+  let tagInput = $state('');
+  let noteInput = $state('');
+
+  $effect(() => {
+    fetch(`/api/annotations?targetType=session&targetId=${encodeURIComponent(id)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((a: Annotation | null) => {
+        annotation = a;
+        tagInput = a?.tags.join(', ') ?? '';
+        noteInput = a?.note ?? '';
+        annotationLoaded = true;
+      })
+      .catch(() => { annotationLoaded = true; });
+  });
+
+  async function saveAnnotation(patch: Partial<{ bookmarked: boolean; rating: number | null; tags: string[]; note: string | null }>) {
+    if (annotationSaving) return;
+    annotationSaving = true;
+    try {
+      const label = session.data ? `Session #${session.data.id} in ${session.data.group_name ?? 'Group'}` : `Session ${id}`;
+      const res = await fetch('/api/annotations', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ target_type: 'session', target_id: id, display_label: label, ...patch }),
+      });
+      if (res.ok) annotation = await res.json() as Annotation;
+    } finally {
+      annotationSaving = false;
+    }
+  }
+
+  function parseTags(input: string): string[] {
+    return input.split(',').map(t => t.trim()).filter(Boolean);
+  }
 
   $effect(() => {
     const p = createPoller<SessionDetail | null>(
@@ -213,6 +252,75 @@
       </a>
     </div>
   </div>
+
+  <!-- Annotations -->
+  {#if annotationLoaded}
+  <section class="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 text-[hsl(var(--card-foreground))]">
+    <h2 class="mb-4 text-base font-semibold">Annotations</h2>
+    <div class="flex flex-col gap-4">
+      <!-- Bookmark + rating row -->
+      <div class="flex items-center gap-4">
+        <button
+          onclick={() => saveAnnotation({ bookmarked: !(annotation?.bookmarked ?? false) })}
+          class="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors
+            {annotation?.bookmarked
+              ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-400'
+              : 'border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}"
+        >
+          {annotation?.bookmarked ? '★' : '☆'} Bookmark
+        </button>
+        <div class="flex items-center gap-1">
+          <button
+            onclick={() => saveAnnotation({ rating: annotation?.rating === 1 ? null : 1 })}
+            class="rounded px-2 py-1 text-sm transition-colors {annotation?.rating === 1 ? 'text-green-400' : 'text-[hsl(var(--muted-foreground))] hover:text-green-400'}"
+            title="Thumbs up"
+          >👍</button>
+          <button
+            onclick={() => saveAnnotation({ rating: annotation?.rating === -1 ? null : -1 })}
+            class="rounded px-2 py-1 text-sm transition-colors {annotation?.rating === -1 ? 'text-red-400' : 'text-[hsl(var(--muted-foreground))] hover:text-red-400'}"
+            title="Thumbs down"
+          >👎</button>
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div class="flex flex-col gap-1">
+        <label class="text-xs uppercase tracking-wide text-[hsl(var(--muted-foreground))]">Tags (comma-separated)</label>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            bind:value={tagInput}
+            placeholder="e.g. good-run, to-review, bug"
+            class="flex-1 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-1.5 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
+          />
+          <button
+            onclick={() => saveAnnotation({ tags: parseTags(tagInput) })}
+            class="rounded-md border border-[hsl(var(--border))] px-3 py-1.5 text-sm hover:bg-[hsl(var(--muted))] transition-colors"
+          >Save</button>
+        </div>
+        {#if annotation?.tags && annotation.tags.length > 0}
+          <div class="flex flex-wrap gap-1 mt-1">
+            {#each annotation.tags as tag}
+              <span class="rounded-full bg-[hsl(var(--accent))] px-2 py-0.5 text-xs text-[hsl(var(--accent-foreground))]">{tag}</span>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <!-- Note -->
+      <div class="flex flex-col gap-1">
+        <label class="text-xs uppercase tracking-wide text-[hsl(var(--muted-foreground))]">Note</label>
+        <textarea
+          rows="3"
+          bind:value={noteInput}
+          placeholder="Free-text notes about this session…"
+          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] resize-none"
+          onblur={() => saveAnnotation({ note: noteInput || null })}
+        ></textarea>
+      </div>
+    </div>
+  </section>
+  {/if}
 
   <!-- Send message (stubbed — pending NanoClaw core support) -->
   <section class="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 text-[hsl(var(--card-foreground))] opacity-60">

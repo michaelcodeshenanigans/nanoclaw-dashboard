@@ -134,6 +134,22 @@ export interface ScheduledTask {
   session_id: string;
 }
 
+export type AnnotationTargetType = 'session' | 'message';
+
+export interface Annotation {
+  id: number;
+  target_type: AnnotationTargetType;
+  target_id: string;
+  session_id: string | null;
+  display_label: string | null;
+  bookmarked: boolean;
+  rating: -1 | 0 | 1 | null;
+  tags: string[];
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface FailedTaskSummary {
   series_id: string;
   agent_group_id: string;
