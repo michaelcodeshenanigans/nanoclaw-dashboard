@@ -17,6 +17,14 @@ export interface HealthStatus {
   ts: string;
 }
 
+export interface ErrorDigestGroup {
+  agent_group_id: string;
+  group_name: string;
+  failing_series: number;
+  total_failure_runs: number;
+  last_failure: string | null;
+}
+
 export interface McpServerConfig {
   command?: string;
   url?: string;
@@ -293,6 +301,15 @@ export interface TriageResponse {
   items: TriageItem[];
   counts: TriageCounts;
   state_available: boolean;
+}
+
+export interface ConnectionHealth {
+  id: string;
+  name: string;
+  platform: string;
+  agent_group_count: number;
+  last_active: string | null;
+  active_sessions: number;
 }
 
 export interface PendingApproval {

@@ -5,10 +5,10 @@
 
 ## Current Position
 
-Phase: 23 — Error Digest
+Phase: 25 — Connections Health
 Plan: —
 Status: Complete
-Last activity: 2026-08-24 — Phase 23 complete (Digest tab on Tasks page — per-group failure aggregation)
+Last activity: 2026-08-24 — Phase 25 complete (/connections page, inferred status from session recency)
 
 ## Milestone
 
@@ -43,7 +43,7 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 22 | Annotations | Complete | 2 |
 | 23 | Error Digest | Complete | 2 |
 | 24 | Skills & MCP Server Inventory | Complete | 2 |
-| 25 | Connections Health | Not started | 2 |
+| 25 | Connections Health | Complete | 2 |
 | 26 | Instructions/Memory Version History | Parked (no version data in core) | 3 |
 | 27 | Roles + Dashboard Audit Log | Not started | 2 |
 | 28 | Global FTS5 Search | Not started | 1 |

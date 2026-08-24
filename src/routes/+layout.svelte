@@ -13,7 +13,8 @@
     { href: '/dropped', label: 'Dropped' },
     { href: '/tasks', label: 'Tasks' },
     { href: '/flagged', label: 'Flagged' },
-    { href: '/config', label: 'Config' }
+    { href: '/config', label: 'Config' },
+    { href: '/connections', label: 'Connections' }
   ] as const;
 
   let { children } = $props();

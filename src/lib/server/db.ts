@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource, TriageItem, TaskRun, FailedTaskSummary, ErrorDigestGroup, GroupConfig, McpServerConfig } from '$lib/types';
+import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource, TriageItem, TaskRun, FailedTaskSummary, ErrorDigestGroup, GroupConfig, McpServerConfig, ConnectionHealth } from '$lib/types';
 
 type BetterDB = InstanceType<typeof Database>;
 
@@ -884,4 +884,23 @@ export function getAllGroupConfigs(): GroupConfig[] {
     ORDER BY g.name
   `).all() as ContainerConfigRow[];
   return rows.map(parseGroupConfigRow);
+}
+
+// ─── Connections Health ───────────────────────────────────────────────────────
+
+export function getConnectionsHealth(): ConnectionHealth[] {
+  return db.prepare(`
+    SELECT
+      mg.id                                                  AS id,
+      mg.name                                                AS name,
+      mg.channel_type                                        AS platform,
+      COUNT(DISTINCT mga.agent_group_id)                     AS agent_group_count,
+      MAX(s.last_active)                                     AS last_active,
+      SUM(CASE WHEN s.container_status = 'running' THEN 1 ELSE 0 END) AS active_sessions
+    FROM messaging_groups mg
+    LEFT JOIN messaging_group_agents mga ON mga.messaging_group_id = mg.id
+    LEFT JOIN sessions s ON s.messaging_group_id = mg.id
+    GROUP BY mg.id, mg.name, mg.channel_type
+    ORDER BY last_active DESC
+  `).all() as ConnectionHealth[];
 }
