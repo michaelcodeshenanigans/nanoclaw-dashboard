@@ -91,6 +91,115 @@
 - **INFRA-07**: Real-time WebSocket push for container status (replace polling)
 - **INFRA-08**: Dashboard sends browser notifications for new approvals and agent errors
 
+---
+
+## v2.0 Requirements — Ops Intelligence
+
+### Triage & Inbox (Tier 1)
+
+- [ ] **TRIAGE-01**: Operator can view a unified "needs attention" inbox combining open approvals, dropped messages, overdue/failed scheduled tasks, and stalled sessions in one view
+- [ ] **TRIAGE-02**: Operator can resolve an item in the triage inbox inline (approve/reject an approval, retry/dismiss a task, acknowledge a stalled session)
+- [ ] **TRIAGE-03**: Operator can snooze a triage item for a configurable duration; snoozed items reappear when the snooze expires
+
+### Run History (Tier 1)
+
+- [ ] **RUNS-01**: Operator can view a cross-group table of every session and task run showing status (running/success/failed/waiting/dropped), group, trigger source (message/scheduled/manual), duration, turn count, and estimated cost
+- [ ] **RUNS-02**: Operator can filter the run history by status, group, trigger source, and time range
+
+### KPI Banner (Tier 1)
+
+- [ ] **KPI-01**: Overview home page shows a KPI banner with total sessions, failure count, failure rate, average session duration, and total spend — each tile shows the 7-day rolling value
+- [ ] **KPI-02**: Each KPI tile shows a delta indicator vs the prior 7-day period (trend up/down with color coding)
+
+### Alerts & Monitors (Tier 1)
+
+- [ ] **ALERT-01**: System sends a NanoClaw message when any group exceeds its configured monthly budget
+- [ ] **ALERT-02**: System sends a NanoClaw message when an approval request has been pending longer than a configurable threshold (default: 30 min)
+- [ ] **ALERT-03**: System sends a NanoClaw message when a group has had no session activity in N hours where N is configurable per group ("silence detector" — dead companion otherwise invisible)
+- [ ] **ALERT-04**: Operator can configure alert thresholds (budget limit, approval timeout, silence window) per group via the dashboard UI
+
+### Cost & Token Visibility (Tier 2 — scope pending Langfuse)
+
+- [ ] **COST-01**: Operator can view spend broken down by companion group, model, and session type for today, month-to-date, and projected monthly total
+- [ ] **COST-02**: Operator can view a spend trend chart over the current month
+- [ ] **COST-03**: Operator can configure a budget guardrail per group; when exceeded, the dashboard optionally auto-pauses that group
+
+### Session Trace View (Tier 2 — feasibility-gated, scope pending Langfuse)
+
+- [ ] **TRACE-01**: Operator can view a per-session tool-call timeline showing what tools ran, their arguments, and duration (requires session transcript access from container)
+
+### Emergency Control (Tier 2)
+
+- [ ] **CTRL-01**: Operator can trigger a global emergency stop that halts all running agent containers and quarantines their queued inbound messages without dropping them
+- [ ] **CTRL-02**: Operator can trigger an emergency stop scoped to one group (halt container, quarantine inbound queue for that group only)
+
+### Steer from Dashboard (Tier 2)
+
+- [ ] **STEER-01**: Operator can send a message or inject a prompt into a live session from the dashboard UI (writes to that session's inbound.db)
+
+### Scheduled Task Control (Tier 2)
+
+- [ ] **SCHED-01**: Operator can manually trigger a scheduled task to run immediately from the dashboard
+- [ ] **SCHED-02**: Operator can view per-run history for each scheduled task: timestamp, duration, status, and delivery outcome
+- [ ] **SCHED-03**: Dashboard shows a "flapping" badge on scheduled tasks that have alternated between failed and success more than N times recently
+
+### Failure Triage (Tier 2)
+
+- [ ] **FAIL-01**: Dashboard groups failed runs by normalized error signature (error message / failing tool name) with occurrence count and last-seen timestamp
+- [ ] **FAIL-02**: Operator can drill into a failed run to view the failing turn in full context
+- [ ] **FAIL-03**: Operator can replay a failed action — re-run it with the current instructions or with instructions as they were at the time of the failure
+
+### Instructions Version History (Tier 3)
+
+- [ ] **INST-01**: Operator can view the version history of CLAUDE.md, fragment files, and memory files for each group, with a diff view between versions
+- [ ] **INST-02**: Operator can roll back a group's instructions to a previous version
+- [ ] **INST-03**: Each run in the run history links to the instruction version that was live when it ran
+
+### Skills & MCP Inventory (Tier 3)
+
+- [ ] **INV-01**: Operator can view an inventory of skills and MCP servers installed for each group, including last-used timestamp
+- [ ] **INV-02**: Operator can enable or disable a skill or MCP server for a group from the dashboard
+
+### Connections Health (Tier 3)
+
+- [ ] **CONN-01**: Operator can view an inventory of stored credentials and channel bridges per group — credential values are never shown in plaintext; shows last-used timestamp
+- [ ] **CONN-02**: Operator can trigger a live "test connection" check for any credential or channel bridge and see a pass/fail result
+
+### Annotations (Tier 3)
+
+- [ ] **ANNOT-01**: Operator can bookmark, tag, add a thumbs-up/down rating, or write a note on any session or message
+- [ ] **ANNOT-02**: Operator can filter to a "flagged" view showing only annotated sessions and messages
+
+### Host & Container Health (Tier 3)
+
+- [ ] **HOST-01**: Dashboard shows a host health strip with CPU, RAM, and disk usage alongside individual container states, auto-refreshing on the standard poll interval
+- [ ] **HOST-02**: Host health strip shows warn/critical color indicators when configurable thresholds are breached
+
+### Error Digest (Tier 3)
+
+- [ ] **ERR-01**: Dashboard aggregates error log lines from all sessions into signature groups with occurrence count and last-seen timestamp
+- [ ] **ERR-02**: Dashboard shows a context-window and compaction pressure indicator per active session
+
+### Roles & Audit Log (Tier 4)
+
+- [ ] **ROLE-01**: Dashboard supports owner/admin/member role mapping for operator accounts (Authelia users)
+- [ ] **ROLE-02**: Every mutating action in the dashboard (restart, approve, reject, steer, rollback, emergency stop) is logged in an audit log with who performed it, what was done, and when
+
+### Retention & Redaction (Tier 4)
+
+- [ ] **RET-01**: Operator can configure a retention window; messages and sessions older than the window are pruned on a schedule
+- [ ] **RET-02**: Operator can configure metadata-only retention — keep timestamps, statuses, and cost data while dropping message payload bodies
+
+### Global Search (Tier 4)
+
+- [ ] **SEARCH-01**: Operator can perform full-text search (SQLite FTS5) across all messages, sessions, and tasks from a global search bar in the dashboard header
+
+### Delta View (Tier 4)
+
+- [ ] **DELTA-01**: Dashboard shows a "what changed since I last looked" view highlighting new sessions, status changes, new approvals, and new failures since the operator's last visit
+
+---
+
 ## Out of Scope
 
 | Feature | Reason |
@@ -158,6 +267,52 @@
 | LLM-03 | Phase 10B | Pending |
 | LLM-04 | Phase 10B | Pending |
 
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| TRIAGE-01 | Phase 13 | Not started |
+| TRIAGE-02 | Phase 13 | Not started |
+| TRIAGE-03 | Phase 13 | Not started |
+| RUNS-01 | Phase 12 | Not started |
+| RUNS-02 | Phase 12 | Not started |
+| KPI-01 | Phase 11 | Not started |
+| KPI-02 | Phase 11 | Not started |
+| ALERT-01 | Phase 14 | Not started |
+| ALERT-02 | Phase 14 | Not started |
+| ALERT-03 | Phase 14 | Not started |
+| ALERT-04 | Phase 14 | Not started |
+| COST-01 | Phase 15 | Not started |
+| COST-02 | Phase 15 | Not started |
+| COST-03 | Phase 15 | Not started |
+| TRACE-01 | Phase 20 | Not started |
+| CTRL-01 | Phase 16 | Not started |
+| CTRL-02 | Phase 16 | Not started |
+| STEER-01 | Phase 18 | Not started |
+| SCHED-01 | Phase 17 | Not started |
+| SCHED-02 | Phase 17 | Not started |
+| SCHED-03 | Phase 17 | Not started |
+| FAIL-01 | Phase 19 | Not started |
+| FAIL-02 | Phase 19 | Not started |
+| FAIL-03 | Phase 19 | Not started |
+| INST-01 | Phase 26 | Not started |
+| INST-02 | Phase 26 | Not started |
+| INST-03 | Phase 26 | Not started |
+| INV-01 | Phase 24 | Not started |
+| INV-02 | Phase 24 | Not started |
+| CONN-01 | Phase 25 | Not started |
+| CONN-02 | Phase 25 | Not started |
+| ANNOT-01 | Phase 22 | Not started |
+| ANNOT-02 | Phase 22 | Not started |
+| HOST-01 | Phase 21 | Not started |
+| HOST-02 | Phase 21 | Not started |
+| ERR-01 | Phase 23 | Not started |
+| ERR-02 | Phase 23 | Not started |
+| ROLE-01 | Phase 27 | Not started |
+| ROLE-02 | Phase 27 | Not started |
+| RET-01 | Phase 29 | Not started |
+| RET-02 | Phase 29 | Not started |
+| SEARCH-01 | Phase 28 | Not started |
+| DELTA-01 | Phase 30 | Not started |
+
 ---
 *Requirements defined: 2026-05-28*
-*Last updated: 2026-06-01 — v1.1 Mobile UX requirements added*
+*Last updated: 2026-08-24 — v2.0 Ops Intelligence requirements added (43 requirements, 20 features, 4 tiers)*

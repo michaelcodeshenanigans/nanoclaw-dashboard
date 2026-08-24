@@ -8,14 +8,19 @@ A dark-theme web ops panel for a self-hosted NanoClaw installation, giving the o
 
 An operator can see what every agent group is doing right now and take action (restart, approve, manage members) without touching the command line.
 
-## Current Milestone: v1.2 LLM Call Observability
+## Current Milestone: v2.0 Ops Intelligence
 
-**Goal:** Per-session LLM call logging (thinking blocks, token counts, duration) — agent-runner writes to outbound.db, dashboard reads and displays per session.
+**Goal:** Transform the dashboard from a status viewer into a full ops intelligence platform — triage inbox, alerting, cost visibility, run history, control actions, and housekeeping across 20 features in 4 tiers.
 
 **Target features:**
-- NanoClaw core: `llm_calls` table in outbound.db (Bun/bun:sqlite), captured in poll-loop event handler
-- Dashboard: `/sessions/[id]/llm-calls` page — table with expandable thinking accordion
-- Graceful degradation when table doesn't exist (old sessions / pre-10A containers)
+- Tier 1 (Triage & Alerting): Triage Inbox, Unified Run History, Overview KPI Banner, Chat-pushed Alerts/Monitors
+- Tier 2 (Cost, Control, Debugging): Cost & Token Command Center, Session Trace View, Emergency Stop/Pause, Run Now + Task Run History, Steer from Dashboard, Failure Triage
+- Tier 3 (Configuration & Polish): Instructions/Memory Version History, Skills & MCP Inventory, Connections Health, Annotations, Host & Container Health Strip, Error Digest
+- Tier 4 (Security & Housekeeping): Roles + Dashboard Audit Log, Retention & Redaction Settings, Global FTS5 Search, Delta View
+
+**Notes:**
+- v1.2 (LLM Call Observability) parked — Langfuse will handle LLM tracing/cost/token analytics; Cost & Token (item 5) and Session Trace (item 6) scoped accordingly once Langfuse is live
+- Authelia 2FA gates the whole dashboard; write-action audit log (item 17) is the only additional auth requirement
 
 ## Requirements
 
@@ -100,7 +105,7 @@ An operator can see what every agent group is doing right now and take action (r
 | Single Docker container | SvelteKit adapter-node serves both pages and API; one container, one Traefik entry | — Pending |
 
 ---
-*Last updated: 2026-06-01 — Milestone v1.1 started*
+*Last updated: 2026-08-24 — Milestone v2.0 started*
 
 ## Evolution
 
