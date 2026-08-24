@@ -5,10 +5,10 @@
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 12 — Unified Run History
 Plan: —
-Status: Defining requirements
-Last activity: 2026-08-24 — Milestone v2.0 started
+Status: In progress
+Last activity: 2026-08-24 — Phase 11 (KPI Banner) complete
 
 ## Milestone
 
@@ -29,7 +29,7 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 9 | Mobile Polish — Tables, Filters, Touch Targets | Complete | 3 |
 | 10A | NanoClaw Core — LLM Call Capture | Parked (Langfuse) | 2 |
 | 10B | Dashboard — LLM Call Viewer | Parked (Langfuse) | 2 |
-| 11 | Overview KPI Banner | Not started | 2 |
+| 11 | Overview KPI Banner | Complete | 2 |
 | 12 | Unified Run History | Not started | 2 |
 | 13 | Triage Inbox | Not started | 3 |
 | 14 | Chat-pushed Alerts/Monitors | Not started | 4 |
