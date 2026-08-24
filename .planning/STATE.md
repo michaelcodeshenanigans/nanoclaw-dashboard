@@ -5,10 +5,10 @@
 
 ## Current Position
 
-Phase: 14 — Chat-pushed Alerts/Monitors
+Phase: 17 — Emergency Stop/Pause
 Plan: —
 Status: Complete
-Last activity: 2026-08-24 — Phase 14 (Monitors) complete
+Last activity: 2026-08-24 — Phase 17 (Emergency Stop/Pause) complete
 
 ## Milestone
 
@@ -33,12 +33,12 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 12 | Unified Run History | Complete | 2 |
 | 13 | Triage Inbox | Complete | 3 |
 | 14 | Chat-pushed Alerts/Monitors | Complete | 4 |
-| 15 | Cost & Token Command Center | Not started | 3 |
-| 16 | Emergency Stop/Pause | Not started | 2 |
-| 17 | Run Now + Task Run History | Not started | 3 |
-| 18 | Steer from Dashboard | Not started | 1 |
-| 19 | Failure Triage | Not started | 3 |
-| 20 | Session Trace View | Not started | 1 |
+| 15 | Cost & Token Command Center | Parked (Langfuse) | 3 |
+| 16 | Session Trace View | Parked (Langfuse) | 1 |
+| 17 | Emergency Stop/Pause | Complete | 2 |
+| 18 | Run Now + Task Run History | Not started | 3 |
+| 19 | Steer from Dashboard | Not started | 1 |
+| 20 | Failure Triage | Not started | 3 |
 | 21 | Host & Container Health Strip | Not started | 2 |
 | 22 | Annotations | Not started | 2 |
 | 23 | Error Digest | Not started | 2 |

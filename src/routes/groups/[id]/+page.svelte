@@ -58,6 +58,31 @@
   let restartLoading = $state(false);
   let restartFeedback = $state('');
 
+  // Stop state
+  let stopLoading = $state(false);
+  let stopFeedback = $state('');
+
+  async function handleStop() {
+    if (!confirm('Stop all running sessions for this group? The agent will be terminated.')) return;
+    stopLoading = true;
+    stopFeedback = '';
+    try {
+      const res = await fetch(`/api/groups/${id}/stop`, { method: 'POST' });
+      if (res.status === 202) {
+        showFeedback(v => { stopFeedback = v; }, 'Stop request submitted — pending approval');
+      } else if (res.ok) {
+        showFeedback(v => { stopFeedback = v; }, 'Stop initiated');
+      } else {
+        const body = await res.json().catch(() => ({}));
+        showFeedback(v => { stopFeedback = v; }, `Error: ${(body as { message?: string }).message ?? res.statusText}`);
+      }
+    } catch (err) {
+      showFeedback(v => { stopFeedback = v; }, `Error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      stopLoading = false;
+    }
+  }
+
   // Member add state
   let addUser = $state('');
   let addLoading = $state(false);
@@ -234,35 +259,61 @@
     {/if}
   </section>
 
-  <!-- Restart -->
+  <!-- Controls: Restart + Emergency Stop -->
   <section class="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 text-[hsl(var(--card-foreground))]">
-    <h2 class="mb-4 text-lg font-semibold">Restart</h2>
-    <div class="flex flex-col gap-4">
-      <label class="flex items-center gap-2 text-sm cursor-pointer">
-        <input type="checkbox" bind:checked={restartRebuild} class="rounded" />
-        <span>Rebuild container image (--rebuild)</span>
-      </label>
-      <label class="flex flex-col gap-1 text-sm">
-        <span class="text-xs uppercase tracking-wide text-[hsl(var(--muted-foreground))]">On-wake message (optional)</span>
-        <input
-          type="text"
-          bind:value={restartMessage}
-          placeholder="Instruction for the agent after restart…"
-          class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
-        />
-      </label>
-      <div class="flex items-center gap-4">
-        <button
-          onclick={handleRestart}
-          disabled={restartLoading}
-          class="rounded-md bg-[hsl(var(--accent))] px-4 py-2 text-sm font-medium text-[hsl(var(--accent-foreground))] hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
-          {restartLoading ? 'Submitting…' : 'Restart'}
-        </button>
-        {#if restartFeedback}
-          <span class="text-sm text-[hsl(var(--muted-foreground))]">{restartFeedback}</span>
-        {/if}
+    <h2 class="mb-4 text-lg font-semibold">Controls</h2>
+    <div class="flex flex-col gap-6">
+
+      <!-- Restart -->
+      <div class="flex flex-col gap-3">
+        <h3 class="text-sm font-medium text-[hsl(var(--foreground))]">Restart</h3>
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" bind:checked={restartRebuild} class="rounded" />
+          <span>Rebuild container image (--rebuild)</span>
+        </label>
+        <label class="flex flex-col gap-1 text-sm">
+          <span class="text-xs uppercase tracking-wide text-[hsl(var(--muted-foreground))]">On-wake message (optional)</span>
+          <input
+            type="text"
+            bind:value={restartMessage}
+            placeholder="Instruction for the agent after restart…"
+            class="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
+          />
+        </label>
+        <div class="flex items-center gap-4">
+          <button
+            onclick={handleRestart}
+            disabled={restartLoading}
+            class="rounded-md bg-[hsl(var(--accent))] px-4 py-2 text-sm font-medium text-[hsl(var(--accent-foreground))] hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {restartLoading ? 'Submitting…' : 'Restart'}
+          </button>
+          {#if restartFeedback}
+            <span class="text-sm text-[hsl(var(--muted-foreground))]">{restartFeedback}</span>
+          {/if}
+        </div>
       </div>
+
+      <hr class="border-[hsl(var(--border))]" />
+
+      <!-- Emergency Stop -->
+      <div class="flex flex-col gap-3">
+        <h3 class="text-sm font-medium text-[hsl(var(--foreground))]">Emergency Stop</h3>
+        <p class="text-xs text-[hsl(var(--muted-foreground))]">Terminates all running sessions for this group. The agent will not restart automatically.</p>
+        <div class="flex items-center gap-4">
+          <button
+            onclick={handleStop}
+            disabled={stopLoading}
+            class="rounded-md border border-red-500/50 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
+          >
+            {stopLoading ? 'Stopping…' : 'Stop All Sessions'}
+          </button>
+          {#if stopFeedback}
+            <span class="text-sm {stopFeedback.startsWith('Error') ? 'text-red-400' : 'text-[hsl(var(--muted-foreground))]'}">{stopFeedback}</span>
+          {/if}
+        </div>
+      </div>
+
     </div>
   </section>
 

@@ -80,6 +80,18 @@
       return ts;
     }
   }
+
+  let stoppingSession = $state<string | null>(null);
+
+  async function stopSession(sessionId: string) {
+    if (!confirm('Stop this session?')) return;
+    stoppingSession = sessionId;
+    try {
+      await fetch(`/api/sessions/${sessionId}/stop`, { method: 'POST' });
+    } finally {
+      stoppingSession = null;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -185,12 +197,23 @@
                 {relativeTime(s.last_active)}
               </td>
               <td class="py-2 text-right">
-                <a
-                  href={`/sessions/${s.id}`}
-                  class="text-sm text-[hsl(var(--accent-foreground))] hover:underline"
-                >
-                  View →
-                </a>
+                <div class="flex items-center justify-end gap-2">
+                  {#if s.container_status === 'running'}
+                    <button
+                      onclick={() => stopSession(s.id)}
+                      disabled={stoppingSession === s.id}
+                      class="text-xs text-red-400 hover:text-red-300 disabled:opacity-50"
+                    >
+                      {stoppingSession === s.id ? 'Stopping…' : 'Stop'}
+                    </button>
+                  {/if}
+                  <a
+                    href={`/sessions/${s.id}`}
+                    class="text-sm text-[hsl(var(--accent-foreground))] hover:underline"
+                  >
+                    View →
+                  </a>
+                </div>
               </td>
             </tr>
           {/each}
