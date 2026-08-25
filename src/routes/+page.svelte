@@ -94,6 +94,12 @@
     return 'bg-green-500';
   }
 
+  function raidStateColor(state: string): string {
+    if (state === 'degraded') return 'text-red-400';
+    if (state === 'rebuilding') return 'text-yellow-400';
+    return 'text-green-400';
+  }
+
   let activeAlerts = $state<MonitorAlert[]>([]);
   $effect(() => {
     function fetchAlerts() {
@@ -267,7 +273,7 @@
         <p class="text-xs text-red-400">Unavailable</p>
       {:else}
         {@const h = hostHealth.data}
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <!-- CPU -->
           <div>
             <div class="flex items-baseline justify-between mb-1">
@@ -288,16 +294,35 @@
               <div class="h-1.5 rounded-full transition-all {barColor(h.mem.pct)}" style="width: {Math.min(h.mem.pct, 100)}%"></div>
             </div>
           </div>
-          <!-- Disk -->
+          <!-- Disk (/) -->
           <div>
             <div class="flex items-baseline justify-between mb-1">
-              <span class="text-xs text-[hsl(var(--muted-foreground))]">Disk</span>
+              <span class="text-xs text-[hsl(var(--muted-foreground))]">Disk (/)</span>
               <span class="text-sm font-semibold {resourceColor(h.disk.pct, true)}">{h.disk.pct}% <span class="text-xs font-normal text-[hsl(var(--muted-foreground))]">{h.disk.used_gb}G / {h.disk.total_gb}G</span></span>
             </div>
             <div class="h-1.5 w-full rounded-full bg-[hsl(var(--muted))]">
               <div class="h-1.5 rounded-full transition-all {barColor(h.disk.pct, true)}" style="width: {Math.min(h.disk.pct, 100)}%"></div>
             </div>
           </div>
+          <!-- RAID md0 -->
+          {#if h.raid}
+            {@const r = h.raid}
+            <div>
+              <div class="flex items-baseline justify-between mb-1">
+                <span class="text-xs text-[hsl(var(--muted-foreground))]">RAID {r.name}</span>
+                <span class="text-sm font-semibold {r.state === 'degraded' ? resourceColor(100) : resourceColor(r.pct, true)}">
+                  {#if r.state !== 'clean'}
+                    <span class="{raidStateColor(r.state)} capitalize mr-1">{r.state}</span>
+                  {/if}
+                  {r.pct}% <span class="text-xs font-normal text-[hsl(var(--muted-foreground))]">{r.used_gb}T / {r.total_gb}T</span>
+                </span>
+              </div>
+              <div class="h-1.5 w-full rounded-full bg-[hsl(var(--muted))]">
+                <div class="h-1.5 rounded-full transition-all {r.state === 'degraded' ? 'bg-red-500' : barColor(r.pct, true)}" style="width: {Math.min(r.pct, 100)}%"></div>
+              </div>
+              <p class="mt-0.5 text-[10px] text-[hsl(var(--muted-foreground))]">{r.active_devices}/{r.total_devices} drives · {r.state}</p>
+            </div>
+          {/if}
         </div>
         <p class="mt-2 text-[10px] text-[hsl(var(--muted-foreground))]">Host-aggregate totals — not per-container (no docker.sock)</p>
       {/if}

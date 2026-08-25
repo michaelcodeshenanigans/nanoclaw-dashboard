@@ -40,10 +40,21 @@ export interface GroupConfig {
   mcp_servers: Record<string, McpServerConfig>;
 }
 
+export interface RaidArray {
+  name: string;
+  state: 'clean' | 'degraded' | 'rebuilding';
+  active_devices: number;
+  total_devices: number;
+  used_gb: number;
+  total_gb: number;
+  pct: number;
+}
+
 export interface HostHealth {
   cpu_pct: number;
   mem: { used_mb: number; total_mb: number; pct: number };
   disk: { used_gb: number; total_gb: number; pct: number };
+  raid: RaidArray | null;
   ts: string;
 }
 

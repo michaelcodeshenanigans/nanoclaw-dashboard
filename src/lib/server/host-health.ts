@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { execFile as execFileCb } from 'node:child_process';
 import { promisify } from 'node:util';
+import type { RaidArray } from '$lib/types';
 
 const execFile = promisify(execFileCb);
 
@@ -49,4 +50,59 @@ export async function readDisk(): Promise<{ used_gb: number; total_gb: number; p
     used_gb: Math.round(usedKb / 1024 / 1024 * 10) / 10,
     pct
   };
+}
+
+export async function readRaid(arrayName = 'md0', mountPath = '/mnt/raid'): Promise<RaidArray | null> {
+  try {
+    const mdstat = await readFile('/proc/mdstat', 'utf8');
+    const lines = mdstat.split('\n');
+
+    // Find the line for our array
+    const headerIdx = lines.findIndex(l => l.startsWith(`${arrayName} :`));
+    if (headerIdx === -1) return null;
+
+    const headerLine = lines[headerIdx] ?? '';
+    const blockLine = lines[headerIdx + 1] ?? '';
+    const extraLines = lines.slice(headerIdx + 2, headerIdx + 6).join('\n');
+
+    // Parse active/total devices from [N/N] pattern
+    const deviceMatch = blockLine.match(/\[(\d+)\/(\d+)\]/);
+    const total_devices = deviceMatch ? parseInt(deviceMatch[1], 10) : 0;
+    const active_devices = deviceMatch ? parseInt(deviceMatch[2], 10) : 0;
+
+    // Parse state from [UU...] bitmap — underscore means a drive is down
+    const bitmapMatch = blockLine.match(/\[([U_]+)\]/);
+    const bitmap = bitmapMatch ? bitmapMatch[1] : '';
+
+    let state: RaidArray['state'];
+    if (extraLines.includes('resync') || extraLines.includes('recovery')) {
+      state = 'rebuilding';
+    } else if (bitmap.includes('_') || active_devices < total_devices) {
+      state = 'degraded';
+    } else {
+      state = 'clean';
+    }
+
+    // Parse total size from blocks (1 block = 1 KiB)
+    const blocksMatch = blockLine.match(/(\d+) blocks/);
+    const totalKb = blocksMatch ? parseInt(blocksMatch[1], 10) : 0;
+    const total_gb = Math.round(totalKb / 1024 / 1024 * 10) / 10;
+
+    // Get used space from df on the mount point
+    let used_gb = 0;
+    let pct = 0;
+    try {
+      const { stdout: dfOut } = await execFile('df', ['-Pk', mountPath]);
+      const parts = (dfOut.trim().split('\n')[1] ?? '').trim().split(/\s+/);
+      const usedKb = parseInt(parts[2] ?? '0', 10);
+      pct = parseInt((parts[4] ?? '0%').replace('%', ''), 10);
+      used_gb = Math.round(usedKb / 1024 / 1024 * 10) / 10;
+    } catch {
+      // mount may not be available in dev — fall back to block-derived estimate
+    }
+
+    return { name: arrayName, state, active_devices, total_devices, used_gb, total_gb, pct };
+  } catch {
+    return null;
+  }
 }
