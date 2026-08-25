@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestEvent } from '@sveltejs/kit';
 import { getMonitors, createMonitor } from '$lib/server/dashboard-db';
+import { requireRole, audit } from '$lib/server/auth';
 import type { MonitorType } from '$lib/types';
 
 const VALID_TYPES = new Set<MonitorType>(['approval_timeout', 'session_silence']);
@@ -10,6 +11,7 @@ export async function GET(): Promise<Response> {
 }
 
 export async function POST({ request }: RequestEvent): Promise<Response> {
+  const op = requireRole(request, 'admin');
   const body = await request.json() as {
     name?: string;
     type?: string;
@@ -32,5 +34,6 @@ export async function POST({ request }: RequestEvent): Promise<Response> {
     target_group_id: body.target_group_id ?? undefined,
     cooldown_minutes: cooldown
   });
+  audit(op.username, 'monitor:create', 'monitor', monitor.id, { name: monitor.name, type: monitor.type });
   return json(monitor, { status: 201 });
 }

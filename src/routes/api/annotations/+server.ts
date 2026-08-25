@@ -1,5 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import { getAnnotation, upsertAnnotation, deleteAnnotation } from '$lib/server/dashboard-db';
+import { requireRole } from '$lib/server/auth';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url }) => {
@@ -10,6 +11,7 @@ export const GET: RequestHandler = async ({ url }) => {
 };
 
 export const PUT: RequestHandler = async ({ request }) => {
+  requireRole(request, 'member');
   const body = await request.json() as {
     target_type: string;
     target_id: string;
@@ -28,7 +30,8 @@ export const PUT: RequestHandler = async ({ request }) => {
   return json(result);
 };
 
-export const DELETE: RequestHandler = async ({ url }) => {
+export const DELETE: RequestHandler = async ({ request, url }) => {
+  requireRole(request, 'member');
   const targetType = url.searchParams.get('targetType');
   const targetId = url.searchParams.get('targetId');
   if (!targetType || !targetId) throw error(400, 'Missing targetType or targetId');

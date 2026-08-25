@@ -1,9 +1,11 @@
 import { error, json } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { execNcl } from '$lib/server/ncl';
+import { requireRole, audit } from '$lib/server/auth';
 import type { RequestHandler } from './$types';
 
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async ({ params, request }) => {
+  const op = requireRole(request, 'admin');
   const { id: groupId, userId } = params;
   if (!groupId) throw error(400, 'Missing group id');
   if (!userId) throw error(400, 'Missing user id');
@@ -19,6 +21,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
 
   try {
     const output = await execNcl(['members', 'remove', '--user', userFlag, '--agent-group-id', groupId]);
+    audit(op.username, 'member:remove', 'group', groupId, { user: userFlag });
     return json({ status: 'ok', output });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

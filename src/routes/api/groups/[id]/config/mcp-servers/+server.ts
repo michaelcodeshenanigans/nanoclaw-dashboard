@@ -1,8 +1,10 @@
 import { error, json } from '@sveltejs/kit';
 import { execNcl } from '$lib/server/ncl';
+import { requireRole, audit } from '$lib/server/auth';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ params, request }) => {
+  const op = requireRole(request, 'admin');
   const groupId = params.id;
   if (!groupId) throw error(400, 'Missing group id');
 
@@ -19,6 +21,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
   try {
     const output = await execNcl(args);
+    audit(op.username, 'mcp:add', 'group', groupId, { name: name.trim(), ...(command?.trim() ? { command: command.trim() } : { url: url?.trim() }) });
     return json({ status: 'ok', output });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -28,6 +31,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 };
 
 export const DELETE: RequestHandler = async ({ params, request }) => {
+  const op = requireRole(request, 'admin');
   const groupId = params.id;
   if (!groupId) throw error(400, 'Missing group id');
 
@@ -41,6 +45,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 
   try {
     const output = await execNcl(args);
+    audit(op.username, 'mcp:remove', 'group', groupId, { name: name.trim() });
     return json({ status: 'ok', output });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

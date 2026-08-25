@@ -14,7 +14,9 @@
     { href: '/tasks', label: 'Tasks' },
     { href: '/flagged', label: 'Flagged' },
     { href: '/config', label: 'Config' },
-    { href: '/connections', label: 'Connections' }
+    { href: '/connections', label: 'Connections' },
+    { href: '/roles', label: 'Roles' },
+    { href: '/audit-log', label: 'Audit Log' }
   ] as const;
 
   let { children } = $props();

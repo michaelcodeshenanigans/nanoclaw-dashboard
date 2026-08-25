@@ -314,6 +314,30 @@ export interface TriageResponse {
   state_available: boolean;
 }
 
+export type Role = 'owner' | 'admin' | 'member';
+
+export interface OperatorInfo {
+  username: string;
+  groups: string[];
+  role: Role;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  actor: string;
+  action: string;
+  target: string | null;
+  target_id: string | null;
+  payload_json: string | null;
+  ts: string;
+}
+
+export interface RoleAssignment {
+  username: string;
+  role: Role;
+  updated_at: string;
+}
+
 export interface ConnectionHealth {
   id: string;
   name: string;

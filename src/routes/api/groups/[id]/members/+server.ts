@@ -1,6 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import { getGroupMembers } from '$lib/server/db';
 import { execNcl } from '$lib/server/ncl';
+import { requireRole, audit } from '$lib/server/auth';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = ({ params }) => {
@@ -12,6 +13,7 @@ export const GET: RequestHandler = ({ params }) => {
 };
 
 export const POST: RequestHandler = async ({ params, request }) => {
+  const op = requireRole(request, 'admin');
   const groupId = params.id;
   if (!groupId) throw error(400, 'Missing group id');
 
@@ -28,6 +30,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
   try {
     const output = await execNcl(['members', 'add', '--user', body.user.trim(), '--agent-group-id', groupId]);
+    audit(op.username, 'member:add', 'group', groupId, { user: body.user.trim() });
     return json({ status: 'ok', output }, { status: 201 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

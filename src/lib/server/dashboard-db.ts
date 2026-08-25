@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { Monitor, MonitorAlert, MonitorType, Annotation } from '$lib/types';
+import type { Monitor, MonitorAlert, MonitorType, Annotation, Role, AuditLogEntry, RoleAssignment } from '$lib/types';
 
 type DB = InstanceType<typeof Database>;
 
@@ -64,6 +64,27 @@ function getDashboardDb(): DB | null {
       );
       CREATE UNIQUE INDEX IF NOT EXISTS idx_annotations_target
         ON annotations(target_type, target_id);
+      CREATE TABLE IF NOT EXISTS operator_roles (
+        username TEXT PRIMARY KEY,
+        role TEXT NOT NULL DEFAULT 'member',
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        actor TEXT NOT NULL,
+        action TEXT NOT NULL,
+        target TEXT,
+        target_id TEXT,
+        payload_json TEXT,
+        ts TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_audit_log_actor ON audit_log (actor);
+      CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log (action);
+      CREATE INDEX IF NOT EXISTS idx_audit_log_ts ON audit_log (ts);
+    `);
+    // Seed michael as owner on first boot
+    _dashboardDb.exec(`
+      INSERT OR IGNORE INTO operator_roles (username, role) VALUES ('michael', 'owner');
     `);
     // Seed default monitors on first boot
     _dashboardDb.exec(`
@@ -356,4 +377,63 @@ export function getFlaggedAnnotations(filter?: { tag?: string; rating?: number }
   }
 
   return annotations;
+}
+
+// ─── Operator Roles ──────────────────────────────────────────────────────────
+
+export function getOperatorRole(username: string, groups: string[]): Role {
+  const db = getDashboardDb();
+  if (!db) return 'member';
+  const row = db.prepare('SELECT role FROM operator_roles WHERE username = ?').get(username) as { role: string } | undefined;
+  if (row) return row.role as Role;
+  // Auto-grant admin to Authelia admins group members with no explicit mapping
+  if (groups.includes('admins')) return 'admin';
+  return 'member';
+}
+
+export function getRoleAssignments(): RoleAssignment[] {
+  const db = getDashboardDb();
+  if (!db) return [];
+  return db.prepare('SELECT username, role, updated_at FROM operator_roles ORDER BY username').all() as RoleAssignment[];
+}
+
+export function setOperatorRole(username: string, role: Role): void {
+  const db = getDashboardDb();
+  if (!db) throw new Error('Dashboard DB not available');
+  db.prepare(`
+    INSERT INTO operator_roles (username, role, updated_at)
+    VALUES (?, ?, datetime('now'))
+    ON CONFLICT(username) DO UPDATE SET role = excluded.role, updated_at = excluded.updated_at
+  `).run(username, role);
+}
+
+// ─── Audit Log ──────────────────────────────────────────────────────────────
+
+export function writeAuditEntry(actor: string, action: string, target: string | null, targetId: string | null, payloadJson: string | null = null): void {
+  const db = getDashboardDb();
+  if (!db) return;
+  db.prepare(`
+    INSERT INTO audit_log (actor, action, target, target_id, payload_json)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(actor, action, target, targetId, payloadJson);
+}
+
+export function getAuditLog(opts: { actor?: string; action?: string; limit?: number; offset?: number } = {}): AuditLogEntry[] {
+  const db = getDashboardDb();
+  if (!db) return [];
+  const where: string[] = [];
+  const params: (string | number)[] = [];
+  if (opts.actor) { where.push('actor = ?'); params.push(opts.actor); }
+  if (opts.action) { where.push('action LIKE ?'); params.push(`${opts.action}%`); }
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const limit = opts.limit ?? 200;
+  const offset = opts.offset ?? 0;
+  params.push(limit, offset);
+  return db.prepare(`SELECT * FROM audit_log ${whereSql} ORDER BY ts DESC LIMIT ? OFFSET ?`).all(...params) as AuditLogEntry[];
+}
+
+export function getAuditActors(): string[] {
+  const db = getDashboardDb();
+  if (!db) return [];
+  return (db.prepare('SELECT DISTINCT actor FROM audit_log ORDER BY actor').all() as { actor: string }[]).map(r => r.actor);
 }
