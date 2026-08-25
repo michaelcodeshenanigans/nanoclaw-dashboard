@@ -17,7 +17,8 @@
     { href: '/connections', label: 'Connections' },
     { href: '/roles', label: 'Roles' },
     { href: '/audit-log', label: 'Audit Log' },
-    { href: '/retention', label: 'Retention' }
+    { href: '/retention', label: 'Retention' },
+    { href: '/delta', label: 'Delta' }
   ] as const;
 
   let searchInput = $state('');
@@ -33,6 +34,7 @@
   let { children } = $props();
   let sidebarOpen = $state(false);
   let triageCount = $state(0);
+  let deltaCount = $state(0);
 
   $effect(() => {
     function fetchCount() {
@@ -43,6 +45,18 @@
     }
     fetchCount();
     const iv = setInterval(fetchCount, 30000);
+    return () => clearInterval(iv);
+  });
+
+  $effect(() => {
+    function fetchDeltaCount() {
+      fetch('/api/delta/count')
+        .then(r => r.ok ? r.json() : { total: 0 })
+        .then((d: { total: number }) => { deltaCount = d.total; })
+        .catch(() => {});
+    }
+    fetchDeltaCount();
+    const iv = setInterval(fetchDeltaCount, 30000);
     return () => clearInterval(iv);
   });
 
@@ -109,6 +123,8 @@
           {item.label}
           {#if item.href === '/triage' && triageCount > 0}
             <span class="inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-semibold h-4 min-w-[16px] px-1">{triageCount > 99 ? '99+' : triageCount}</span>
+          {:else if item.href === '/delta' && deltaCount > 0}
+            <span class="inline-flex items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-semibold h-4 min-w-[16px] px-1">{deltaCount > 99 ? '99+' : deltaCount}</span>
           {/if}
         </a>
       {/each}
@@ -144,6 +160,8 @@
           {item.label}
           {#if item.href === '/triage' && triageCount > 0}
             <span class="inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-semibold h-4 min-w-[16px] px-1">{triageCount > 99 ? '99+' : triageCount}</span>
+          {:else if item.href === '/delta' && deltaCount > 0}
+            <span class="inline-flex items-center justify-center rounded-full bg-blue-500 text-white text-[10px] font-semibold h-4 min-w-[16px] px-1">{deltaCount > 99 ? '99+' : deltaCount}</span>
           {/if}
         </a>
       {/each}

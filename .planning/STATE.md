@@ -5,10 +5,10 @@
 
 ## Current Position
 
-Phase: 29 — Retention & Redaction Settings
+Phase: 30 — Delta View
 Plan: —
 Status: Complete
-Last activity: 2026-08-25 — Phase 29 complete (dashboard-data retention: audit_log/alerts/triage/search_index/annotations; dry-run + confirm + scheduled auto-prune; NanoClaw session data gap noted in UI)
+Last activity: 2026-08-25 — Phase 30 complete (per-operator delta view: new sessions, status changes, new approvals since last seen; blue badge in nav; mark-as-seen resets baseline; v2.0 milestone complete)
 
 ## Milestone
 
@@ -48,7 +48,7 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 27 | Roles + Dashboard Audit Log | Complete | 2 |
 | 28 | Global FTS5 Search | Complete | 1 |
 | 29 | Retention & Redaction Settings | Complete (dashboard-data scope; NanoClaw session data pending ncl verb) | 2 |
-| 30 | Delta View | Not started | 1 |
+| 30 | Delta View | Complete | 1 |
 
 ## Project Reference
 
