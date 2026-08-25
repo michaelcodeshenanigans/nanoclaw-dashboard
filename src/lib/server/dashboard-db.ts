@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { Monitor, MonitorAlert, MonitorType, Annotation, Role, AuditLogEntry, RoleAssignment } from '$lib/types';
+import type { Monitor, MonitorAlert, MonitorType, Annotation, Role, AuditLogEntry, RoleAssignment, SearchResult } from '$lib/types';
 
 type DB = InstanceType<typeof Database>;
 
@@ -81,6 +81,21 @@ function getDashboardDb(): DB | null {
       CREATE INDEX IF NOT EXISTS idx_audit_log_actor ON audit_log (actor);
       CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log (action);
       CREATE INDEX IF NOT EXISTS idx_audit_log_ts ON audit_log (ts);
+      CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
+        type UNINDEXED,
+        entity_id UNINDEXED,
+        group_id UNINDEXED,
+        session_id UNINDEXED,
+        direction UNINDEXED,
+        ts UNINDEXED,
+        title,
+        body,
+        tokenize='unicode61 remove_diacritics 1'
+      );
+      CREATE TABLE IF NOT EXISTS search_watermark (
+        key TEXT PRIMARY KEY,
+        last_ts TEXT NOT NULL
+      );
     `);
     // Seed michael as owner on first boot
     _dashboardDb.exec(`
@@ -436,4 +451,68 @@ export function getAuditActors(): string[] {
   const db = getDashboardDb();
   if (!db) return [];
   return (db.prepare('SELECT DISTINCT actor FROM audit_log ORDER BY actor').all() as { actor: string }[]).map(r => r.actor);
+}
+
+// ─── Search Index (FTS5) ─────────────────────────────────────────────────────
+
+export type SearchEntry = Omit<SearchResult, 'rank'>;
+
+export function querySearchIndex(query: string, limit = 20): SearchResult[] {
+  const db = getDashboardDb();
+  if (!db) return [];
+  try {
+    return db.prepare(`
+      SELECT type, entity_id, group_id, session_id, direction, ts, title, body, rank
+      FROM search_index
+      WHERE search_index MATCH ?
+      ORDER BY rank
+      LIMIT ?
+    `).all(query, limit) as SearchResult[];
+  } catch { return []; }
+}
+
+export function replaceSearchEntriesByType(type: string, entries: SearchEntry[]): void {
+  const db = getDashboardDb();
+  if (!db) return;
+  const del = db.prepare('DELETE FROM search_index WHERE type = ?');
+  const ins = db.prepare(`
+    INSERT INTO search_index (type, entity_id, group_id, session_id, direction, ts, title, body)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  db.transaction(() => {
+    del.run(type);
+    for (const e of entries) {
+      ins.run(e.type, e.entity_id, e.group_id, e.session_id, e.direction, e.ts, e.title, e.body);
+    }
+  })();
+}
+
+export function insertSearchEntries(entries: SearchEntry[]): void {
+  const db = getDashboardDb();
+  if (!db || entries.length === 0) return;
+  const ins = db.prepare(`
+    INSERT INTO search_index (type, entity_id, group_id, session_id, direction, ts, title, body)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  db.transaction(() => {
+    for (const e of entries) {
+      ins.run(e.type, e.entity_id, e.group_id, e.session_id, e.direction, e.ts, e.title, e.body);
+    }
+  })();
+}
+
+export function getSearchWatermark(key: string): string {
+  const db = getDashboardDb();
+  if (!db) return '1970-01-01T00:00:00.000Z';
+  const row = db.prepare('SELECT last_ts FROM search_watermark WHERE key = ?').get(key) as { last_ts: string } | undefined;
+  return row?.last_ts ?? '1970-01-01T00:00:00.000Z';
+}
+
+export function setSearchWatermark(key: string, ts: string): void {
+  const db = getDashboardDb();
+  if (!db) return;
+  db.prepare(`
+    INSERT INTO search_watermark (key, last_ts) VALUES (?, ?)
+    ON CONFLICT(key) DO UPDATE SET last_ts = excluded.last_ts
+  `).run(key, ts);
 }

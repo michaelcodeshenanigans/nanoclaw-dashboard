@@ -5,10 +5,10 @@
 
 ## Current Position
 
-Phase: 27 — Roles + Dashboard Audit Log
+Phase: 28 — Global FTS5 Search
 Plan: —
 Status: Complete
-Last activity: 2026-08-25 — Phase 27 complete (role-gating + audit log); bundles 9339642..010bc89 pending deploy
+Last activity: 2026-08-25 — Phase 28 complete (FTS5 search index + /search page + sidebar search bar)
 
 ## Milestone
 
@@ -46,7 +46,7 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 25 | Connections Health | Complete | 2 |
 | 26 | Instructions/Memory Version History | Parked (no version data in core) | 3 |
 | 27 | Roles + Dashboard Audit Log | Complete | 2 |
-| 28 | Global FTS5 Search | Not started | 1 |
+| 28 | Global FTS5 Search | Complete | 1 |
 | 29 | Retention & Redaction Settings | Not started | 2 |
 | 30 | Delta View | Not started | 1 |
 
