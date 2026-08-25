@@ -14,6 +14,7 @@ services:
       - /home/michael/workspace/nanoclaw-v2/data:/nanoclaw-data:ro
       - /home/michael/workspace/nanoclaw-v2/data/ncl.sock:/ncl.sock
       - nanoclaw-dashboard-data:/dashboard-data
+      - /mnt/raid:/mnt/raid:ro
     networks:
       - saltbox
     labels:
