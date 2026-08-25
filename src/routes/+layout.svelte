@@ -19,6 +19,16 @@
     { href: '/audit-log', label: 'Audit Log' }
   ] as const;
 
+  let searchInput = $state('');
+
+  function onSearchSubmit(e: Event) {
+    e.preventDefault();
+    const q = searchInput.trim();
+    if (q.length >= 2) {
+      window.location.href = `/search?q=${encodeURIComponent(q)}`;
+    }
+  }
+
   let { children } = $props();
   let sidebarOpen = $state(false);
   let triageCount = $state(0);
@@ -102,6 +112,14 @@
         </a>
       {/each}
     </nav>
+    <div class="px-2 pb-2">
+      <form onsubmit={onSearchSubmit}>
+        <div class="relative">
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[hsl(var(--muted-foreground))]" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="6"/><path d="M15 15l3 3"/></svg>
+          <input type="search" bind:value={searchInput} placeholder="Search…" onclick={closeDrawer} class="w-full h-8 pl-8 pr-3 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] text-xs placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--ring))]" />
+        </div>
+      </form>
+    </div>
     <div class="px-4 py-3 border-t border-[hsl(var(--border))] shrink-0">
       <p class="text-xs text-[hsl(var(--muted-foreground))]">v0.1.0</p>
     </div>
@@ -129,6 +147,14 @@
         </a>
       {/each}
     </nav>
+    <div class="px-2 pb-2">
+      <form onsubmit={onSearchSubmit}>
+        <div class="relative">
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[hsl(var(--muted-foreground))]" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="6"/><path d="M15 15l3 3"/></svg>
+          <input type="search" bind:value={searchInput} placeholder="Search…" class="w-full h-8 pl-8 pr-3 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] text-xs placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--ring))]" />
+        </div>
+      </form>
+    </div>
     <div class="px-4 py-3 border-t border-[hsl(var(--border))]">
       <p class="text-xs text-[hsl(var(--muted-foreground))]">v0.1.0</p>
     </div>

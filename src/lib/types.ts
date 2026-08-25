@@ -347,6 +347,18 @@ export interface ConnectionHealth {
   active_sessions: number;
 }
 
+export interface SearchResult {
+  type: 'group' | 'session' | 'task' | 'message';
+  entity_id: string;
+  group_id: string | null;
+  session_id: string | null;
+  direction: string | null;
+  ts: string;
+  title: string;
+  body: string;
+  rank: number;
+}
+
 export interface PendingApproval {
   approval_id: string;
   session_id: string | null;
