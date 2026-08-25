@@ -1,14 +1,14 @@
 # Project State
 
 **Project:** NanoClaw Dashboard
-**Updated:** 2026-08-24
+**Updated:** 2026-08-25
 
 ## Current Position
 
-Phase: 25 — Connections Health
+Phase: 27 — Roles + Dashboard Audit Log
 Plan: —
 Status: Complete
-Last activity: 2026-08-24 — Phase 25 complete (/connections page, inferred status from session recency)
+Last activity: 2026-08-25 — Phase 27 complete (role-gating + audit log); bundles 9339642..010bc89 pending deploy
 
 ## Milestone
 
@@ -45,7 +45,7 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 24 | Skills & MCP Server Inventory | Complete | 2 |
 | 25 | Connections Health | Complete | 2 |
 | 26 | Instructions/Memory Version History | Parked (no version data in core) | 3 |
-| 27 | Roles + Dashboard Audit Log | Not started | 2 |
+| 27 | Roles + Dashboard Audit Log | Complete | 2 |
 | 28 | Global FTS5 Search | Not started | 1 |
 | 29 | Retention & Redaction Settings | Not started | 2 |
 | 30 | Delta View | Not started | 1 |
