@@ -16,7 +16,8 @@
     { href: '/config', label: 'Config' },
     { href: '/connections', label: 'Connections' },
     { href: '/roles', label: 'Roles' },
-    { href: '/audit-log', label: 'Audit Log' }
+    { href: '/audit-log', label: 'Audit Log' },
+    { href: '/retention', label: 'Retention' }
   ] as const;
 
   let searchInput = $state('');
