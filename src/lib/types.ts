@@ -347,6 +347,40 @@ export interface ConnectionHealth {
   active_sessions: number;
 }
 
+export interface RetentionConfig {
+  enabled: boolean;
+  window_days: number;
+  include_audit_log: boolean;
+  include_monitor_alerts: boolean;
+  include_triage: boolean;
+  include_search_index: boolean;
+  include_annotations: boolean;
+  schedule_days: number;
+  last_run_ts: string | null;
+  last_run_summary: string | null;
+  next_run_ts: string | null;
+}
+
+export interface RetentionPreview {
+  audit_log: number;
+  monitor_alerts: number;
+  triage: number;
+  search_index: number;
+  annotations: number;
+  total: number;
+  cutoff: string;
+  dry_run: boolean;
+}
+
+export interface RetentionRun {
+  id: number;
+  ts: string;
+  window_days: number;
+  dry_run: boolean;
+  summary_json: string;
+  triggered_by: string;
+}
+
 export interface SearchResult {
   type: 'group' | 'session' | 'task' | 'message';
   entity_id: string;

@@ -5,10 +5,10 @@
 
 ## Current Position
 
-Phase: 28 — Global FTS5 Search
+Phase: 29 — Retention & Redaction Settings
 Plan: —
 Status: Complete
-Last activity: 2026-08-25 — Phase 28 complete (FTS5 search index + /search page + sidebar search bar)
+Last activity: 2026-08-25 — Phase 29 complete (dashboard-data retention: audit_log/alerts/triage/search_index/annotations; dry-run + confirm + scheduled auto-prune; NanoClaw session data gap noted in UI)
 
 ## Milestone
 
@@ -47,7 +47,7 @@ v2.0 — Ops Intelligence (20 features, 4 tiers, phases 11–30)
 | 26 | Instructions/Memory Version History | Parked (no version data in core) | 3 |
 | 27 | Roles + Dashboard Audit Log | Complete | 2 |
 | 28 | Global FTS5 Search | Complete | 1 |
-| 29 | Retention & Redaction Settings | Not started | 2 |
+| 29 | Retention & Redaction Settings | Complete (dashboard-data scope; NanoClaw session data pending ncl verb) | 2 |
 | 30 | Delta View | Not started | 1 |
 
 ## Project Reference

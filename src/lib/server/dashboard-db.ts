@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { Monitor, MonitorAlert, MonitorType, Annotation, Role, AuditLogEntry, RoleAssignment, SearchResult } from '$lib/types';
+import type { Monitor, MonitorAlert, MonitorType, Annotation, Role, AuditLogEntry, RoleAssignment, SearchResult, RetentionConfig, RetentionPreview, RetentionRun } from '$lib/types';
 
 type DB = InstanceType<typeof Database>;
 
@@ -95,6 +95,29 @@ function getDashboardDb(): DB | null {
       CREATE TABLE IF NOT EXISTS search_watermark (
         key TEXT PRIMARY KEY,
         last_ts TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS retention_config (
+        id INTEGER PRIMARY KEY CHECK(id = 1),
+        enabled INTEGER NOT NULL DEFAULT 0,
+        window_days INTEGER NOT NULL DEFAULT 90,
+        include_audit_log INTEGER NOT NULL DEFAULT 1,
+        include_monitor_alerts INTEGER NOT NULL DEFAULT 1,
+        include_triage INTEGER NOT NULL DEFAULT 1,
+        include_search_index INTEGER NOT NULL DEFAULT 1,
+        include_annotations INTEGER NOT NULL DEFAULT 0,
+        schedule_days INTEGER NOT NULL DEFAULT 7,
+        last_run_ts TEXT,
+        last_run_summary TEXT,
+        next_run_ts TEXT
+      );
+      INSERT OR IGNORE INTO retention_config (id) VALUES (1);
+      CREATE TABLE IF NOT EXISTS retention_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts TEXT NOT NULL DEFAULT (datetime('now')),
+        window_days INTEGER NOT NULL,
+        dry_run INTEGER NOT NULL DEFAULT 0,
+        summary_json TEXT NOT NULL,
+        triggered_by TEXT NOT NULL DEFAULT 'auto'
       );
     `);
     // Seed michael as owner on first boot
@@ -515,4 +538,132 @@ export function setSearchWatermark(key: string, ts: string): void {
     INSERT INTO search_watermark (key, last_ts) VALUES (?, ?)
     ON CONFLICT(key) DO UPDATE SET last_ts = excluded.last_ts
   `).run(key, ts);
+}
+
+// ─── Retention ───────────────────────────────────────────────────────────────
+
+interface RetentionConfigRow {
+  enabled: number; window_days: number;
+  include_audit_log: number; include_monitor_alerts: number;
+  include_triage: number; include_search_index: number; include_annotations: number;
+  schedule_days: number;
+  last_run_ts: string | null; last_run_summary: string | null; next_run_ts: string | null;
+}
+
+function mapRetentionConfig(r: RetentionConfigRow): RetentionConfig {
+  return {
+    enabled: r.enabled === 1,
+    window_days: r.window_days,
+    include_audit_log: r.include_audit_log === 1,
+    include_monitor_alerts: r.include_monitor_alerts === 1,
+    include_triage: r.include_triage === 1,
+    include_search_index: r.include_search_index === 1,
+    include_annotations: r.include_annotations === 1,
+    schedule_days: r.schedule_days,
+    last_run_ts: r.last_run_ts,
+    last_run_summary: r.last_run_summary,
+    next_run_ts: r.next_run_ts,
+  };
+}
+
+export function getRetentionConfig(): RetentionConfig | null {
+  const db = getDashboardDb();
+  if (!db) return null;
+  const row = db.prepare('SELECT * FROM retention_config WHERE id = 1').get() as RetentionConfigRow | undefined;
+  return row ? mapRetentionConfig(row) : null;
+}
+
+export function saveRetentionConfig(cfg: Partial<Omit<RetentionConfig, 'last_run_ts' | 'last_run_summary' | 'next_run_ts'>>): void {
+  const db = getDashboardDb();
+  if (!db) return;
+  const fields: string[] = [];
+  const params: (number | string | null)[] = [];
+  if (cfg.enabled !== undefined) { fields.push('enabled = ?'); params.push(cfg.enabled ? 1 : 0); }
+  if (cfg.window_days !== undefined) { fields.push('window_days = ?'); params.push(cfg.window_days); }
+  if (cfg.include_audit_log !== undefined) { fields.push('include_audit_log = ?'); params.push(cfg.include_audit_log ? 1 : 0); }
+  if (cfg.include_monitor_alerts !== undefined) { fields.push('include_monitor_alerts = ?'); params.push(cfg.include_monitor_alerts ? 1 : 0); }
+  if (cfg.include_triage !== undefined) { fields.push('include_triage = ?'); params.push(cfg.include_triage ? 1 : 0); }
+  if (cfg.include_search_index !== undefined) { fields.push('include_search_index = ?'); params.push(cfg.include_search_index ? 1 : 0); }
+  if (cfg.include_annotations !== undefined) { fields.push('include_annotations = ?'); params.push(cfg.include_annotations ? 1 : 0); }
+  if (cfg.schedule_days !== undefined) { fields.push('schedule_days = ?'); params.push(cfg.schedule_days); }
+  if (!fields.length) return;
+  params.push(1);
+  db.prepare(`UPDATE retention_config SET ${fields.join(', ')} WHERE id = ?`).run(...params);
+}
+
+export function recordRetentionRun(windowDays: number, dryRun: boolean, summary: RetentionPreview, triggeredBy: string): void {
+  const db = getDashboardDb();
+  if (!db) return;
+  const summaryJson = JSON.stringify(summary);
+  db.prepare(`
+    INSERT INTO retention_runs (window_days, dry_run, summary_json, triggered_by)
+    VALUES (?, ?, ?, ?)
+  `).run(windowDays, dryRun ? 1 : 0, summaryJson, triggeredBy);
+  if (!dryRun) {
+    const schedRow = db.prepare('SELECT schedule_days FROM retention_config WHERE id = 1').get() as { schedule_days: number } | undefined;
+    const schedDays = schedRow?.schedule_days ?? 7;
+    const nextRun = new Date(Date.now() + schedDays * 86400000).toISOString();
+    db.prepare(`
+      UPDATE retention_config SET last_run_ts = datetime('now'), last_run_summary = ?, next_run_ts = ? WHERE id = 1
+    `).run(summaryJson, nextRun);
+  }
+}
+
+export function getRetentionRuns(limit = 20): RetentionRun[] {
+  const db = getDashboardDb();
+  if (!db) return [];
+  return (db.prepare('SELECT * FROM retention_runs ORDER BY ts DESC LIMIT ?').all(limit) as Array<{
+    id: number; ts: string; window_days: number; dry_run: number; summary_json: string; triggered_by: string;
+  }>).map(r => ({ ...r, dry_run: r.dry_run === 1 }));
+}
+
+export function dryRunRetention(windowDays: number, cfg: RetentionConfig): RetentionPreview {
+  const db = getDashboardDb();
+  const cutoff = new Date(Date.now() - windowDays * 86400000).toISOString();
+  if (!db) return { audit_log: 0, monitor_alerts: 0, triage: 0, search_index: 0, annotations: 0, total: 0, cutoff, dry_run: true };
+
+  const count = (sql: string, ...params: unknown[]) =>
+    (db.prepare(sql).get(...params) as { n: number }).n;
+
+  const audit_log = cfg.include_audit_log
+    ? count('SELECT COUNT(*) AS n FROM audit_log WHERE ts < ?', cutoff) : 0;
+  const monitor_alerts = cfg.include_monitor_alerts
+    ? count('SELECT COUNT(*) AS n FROM monitor_alerts WHERE acknowledged = 1 AND fired_at < ?', cutoff) : 0;
+  const triage = cfg.include_triage
+    ? count('SELECT COUNT(*) AS n FROM triage_dismiss WHERE dismissed_at < ?', cutoff) +
+      count('SELECT COUNT(*) AS n FROM triage_snooze WHERE created_at < ?', cutoff) : 0;
+  const search_index = cfg.include_search_index
+    ? count("SELECT COUNT(*) AS n FROM search_index WHERE type = 'message' AND ts < ?", cutoff) : 0;
+  const annotations = cfg.include_annotations
+    ? count('SELECT COUNT(*) AS n FROM annotations WHERE updated_at < ?', cutoff) : 0;
+  const total = audit_log + monitor_alerts + triage + search_index + annotations;
+  return { audit_log, monitor_alerts, triage, search_index, annotations, total, cutoff, dry_run: true };
+}
+
+export function applyRetention(windowDays: number, cfg: RetentionConfig): RetentionPreview {
+  const db = getDashboardDb();
+  const cutoff = new Date(Date.now() - windowDays * 86400000).toISOString();
+  if (!db) return { audit_log: 0, monitor_alerts: 0, triage: 0, search_index: 0, annotations: 0, total: 0, cutoff, dry_run: false };
+
+  let audit_log = 0, monitor_alerts = 0, triage = 0, search_index = 0, annotations = 0;
+
+  db.transaction(() => {
+    if (cfg.include_audit_log)
+      audit_log = (db.prepare('DELETE FROM audit_log WHERE ts < ?').run(cutoff)).changes;
+    if (cfg.include_monitor_alerts)
+      monitor_alerts = (db.prepare('DELETE FROM monitor_alerts WHERE acknowledged = 1 AND fired_at < ?').run(cutoff)).changes;
+    if (cfg.include_triage) {
+      triage += (db.prepare('DELETE FROM triage_dismiss WHERE dismissed_at < ?').run(cutoff)).changes;
+      triage += (db.prepare('DELETE FROM triage_snooze WHERE created_at < ?').run(cutoff)).changes;
+    }
+    if (cfg.include_search_index) {
+      search_index = (db.prepare("DELETE FROM search_index WHERE type = 'message' AND ts < ?").run(cutoff)).changes;
+      db.prepare('DELETE FROM search_watermark WHERE key LIKE ? AND last_ts < ?').run('msg:%', cutoff);
+    }
+    if (cfg.include_annotations)
+      annotations = (db.prepare('DELETE FROM annotations WHERE updated_at < ?').run(cutoff)).changes;
+  })();
+
+  const total = audit_log + monitor_alerts + triage + search_index + annotations;
+  return { audit_log, monitor_alerts, triage, search_index, annotations, total, cutoff, dry_run: false };
 }
