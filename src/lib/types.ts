@@ -409,3 +409,32 @@ export interface PendingApproval {
   options_json: string;
   group_name: string | null;
 }
+
+export interface DeltaSession {
+  id: string;
+  group_id: string;
+  group_name: string;
+  container_status: string | null;
+  status: string | null;
+  created_at: string;
+  last_active: string | null;
+}
+
+export interface DeltaApproval {
+  approval_id: string;
+  session_id: string | null;
+  group_id: string | null;
+  group_name: string | null;
+  action: string;
+  title: string | null;
+  created_at: string;
+  status: string;
+}
+
+export interface DeltaView {
+  baseline_ts: string;
+  new_sessions: DeltaSession[];
+  completed_since: DeltaSession[];
+  new_approvals: DeltaApproval[];
+  total: number;
+}

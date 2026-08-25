@@ -119,6 +119,11 @@ function getDashboardDb(): DB | null {
         summary_json TEXT NOT NULL,
         triggered_by TEXT NOT NULL DEFAULT 'auto'
       );
+      CREATE TABLE IF NOT EXISTS operator_last_seen (
+        username TEXT PRIMARY KEY,
+        baseline_ts TEXT NOT NULL DEFAULT (datetime('now', '-1 hour')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
     `);
     // Seed michael as owner on first boot
     _dashboardDb.exec(`
@@ -666,4 +671,27 @@ export function applyRetention(windowDays: number, cfg: RetentionConfig): Retent
 
   const total = audit_log + monitor_alerts + triage + search_index + annotations;
   return { audit_log, monitor_alerts, triage, search_index, annotations, total, cutoff, dry_run: false };
+}
+
+// ─── Delta View — per-operator last-seen baseline ────────────────────────────
+
+export function ensureOperatorBaseline(username: string): string {
+  const db = getDashboardDb();
+  if (!db) return new Date(Date.now() - 3600000).toISOString();
+  db.prepare(`
+    INSERT OR IGNORE INTO operator_last_seen (username, baseline_ts, updated_at)
+    VALUES (?, datetime('now', '-1 hour'), datetime('now'))
+  `).run(username);
+  const row = db.prepare('SELECT baseline_ts FROM operator_last_seen WHERE username = ?').get(username) as { baseline_ts: string } | undefined;
+  return row?.baseline_ts ?? new Date(Date.now() - 3600000).toISOString();
+}
+
+export function markOperatorSeen(username: string): void {
+  const db = getDashboardDb();
+  if (!db) return;
+  db.prepare(`
+    INSERT INTO operator_last_seen (username, baseline_ts, updated_at)
+    VALUES (?, datetime('now'), datetime('now'))
+    ON CONFLICT(username) DO UPDATE SET baseline_ts = datetime('now'), updated_at = datetime('now')
+  `).run(username);
 }

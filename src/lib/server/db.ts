@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource, TriageItem, TaskRun, FailedTaskSummary, ErrorDigestGroup, GroupConfig, McpServerConfig, ConnectionHealth } from '$lib/types';
+import type { DbStatus, Group, HealthStats, GroupDetail, Member, Destination, SessionSummary, SessionWithGroup, Message, PendingApproval, UnregisteredSender, ScheduledTask, LlmCall, KpiStats, KpiPeriod, RunHistoryEntry, RunStatus, TriggerSource, TriageItem, TaskRun, FailedTaskSummary, ErrorDigestGroup, GroupConfig, McpServerConfig, ConnectionHealth, DeltaSession, DeltaApproval } from '$lib/types';
 
 type BetterDB = InstanceType<typeof Database>;
 
@@ -903,4 +903,48 @@ export function getConnectionsHealth(): ConnectionHealth[] {
     GROUP BY mg.id, mg.name, mg.channel_type
     ORDER BY last_active DESC
   `).all() as ConnectionHealth[];
+}
+
+// ─── Delta View ───────────────────────────────────────────────────────────────
+
+export interface DeltaViewData {
+  new_sessions: DeltaSession[];
+  completed_since: DeltaSession[];
+  new_approvals: DeltaApproval[];
+}
+
+export function getDeltaView(baselineTs: string): DeltaViewData {
+  const new_sessions = db.prepare(`
+    SELECT s.id, s.agent_group_id AS group_id, g.name AS group_name,
+           s.container_status, s.status, s.created_at, s.last_active
+    FROM sessions s
+    JOIN agent_groups g ON g.id = s.agent_group_id
+    WHERE s.created_at > ?
+    ORDER BY s.created_at DESC
+    LIMIT 50
+  `).all(baselineTs) as DeltaSession[];
+
+  const completed_since = db.prepare(`
+    SELECT s.id, s.agent_group_id AS group_id, g.name AS group_name,
+           s.container_status, s.status, s.created_at, s.last_active
+    FROM sessions s
+    JOIN agent_groups g ON g.id = s.agent_group_id
+    WHERE s.created_at <= ?
+      AND s.last_active > ?
+      AND s.container_status IN ('stopped', 'error')
+    ORDER BY s.last_active DESC
+    LIMIT 50
+  `).all(baselineTs, baselineTs) as DeltaSession[];
+
+  const new_approvals = db.prepare(`
+    SELECT a.approval_id, a.session_id, a.agent_group_id AS group_id,
+           g.name AS group_name, a.action, a.title, a.created_at, a.status
+    FROM pending_approvals a
+    LEFT JOIN agent_groups g ON g.id = a.agent_group_id
+    WHERE a.created_at > ? AND a.status = 'pending'
+    ORDER BY a.created_at DESC
+    LIMIT 50
+  `).all(baselineTs) as DeltaApproval[];
+
+  return { new_sessions, completed_since, new_approvals };
 }
